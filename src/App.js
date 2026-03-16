@@ -1,23 +1,29 @@
-import logo from './logo.svg';
+import React, { useState } from 'react';
 import './App.css';
+import OnboardingScreen from './components/OnboardingScreen';
+import HomeScreen from './components/HomeScreen';
 
 function App() {
+  const [currentScreen, setCurrentScreen] = useState('onboarding');
+
+  const handleGetStarted = () => {
+    setCurrentScreen('home');
+  };
+
+  const handleLogin = () => {
+    setCurrentScreen('home');
+  };
+
   return (
     <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+      {currentScreen === 'onboarding' ? (
+        <OnboardingScreen 
+          onGetStarted={handleGetStarted}
+          onLogin={handleLogin}
+        />
+      ) : (
+        <HomeScreen />
+      )}
     </div>
   );
 }
