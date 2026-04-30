@@ -24,13 +24,13 @@ export default function VendorUpload() {
         <CheckCircle className="w-16 h-16 text-green-500 mb-4" />
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Product Uploaded!</h2>
         <p className="text-gray-600 mb-8">Your product is now live on the Kuva marketplace.</p>
-        <button 
+        <button
           onClick={() => setIsSuccess(false)}
           className="w-full bg-primary text-white font-bold py-3 rounded-xl mb-3"
         >
           Upload Another Product
         </button>
-        <Link href="/" className="w-full bg-white border border-gray-300 text-gray-700 font-bold py-3 rounded-xl block">
+        <Link href="/vendor/dashboard" className="w-full bg-white border border-gray-300 text-gray-700 font-bold py-3 rounded-xl block">
           Back to Dashboard
         </Link>
       </div>
@@ -40,7 +40,7 @@ export default function VendorUpload() {
   return (
     <main className="min-h-screen bg-gray-50 pb-10">
       <header className="bg-white border-b border-gray-100 px-4 py-4 flex items-center gap-3 sticky top-0 z-50">
-        <Link href="/" className="p-2 -ml-2 text-gray-600 active:bg-gray-100 rounded-full transition">
+        <Link href="/vendor/dashboard" className="p-2 -ml-2 text-gray-600 active:bg-gray-100 rounded-full transition">
           <ArrowLeft className="w-6 h-6" />
         </Link>
         <h1 className="text-lg font-bold text-gray-900">Upload New Product</h1>
@@ -58,9 +58,9 @@ export default function VendorUpload() {
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Product Title</label>
-            <input 
+            <input
               required
-              type="text" 
+              type="text"
               placeholder="e.g. Handmade Leather Sandals"
               className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
@@ -69,18 +69,18 @@ export default function VendorUpload() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Price (UGX)</label>
-              <input 
+              <input
                 required
-                type="number" 
+                type="number"
                 placeholder="0"
                 className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Stock Amount</label>
-              <input 
+              <input
                 required
-                type="number" 
+                type="number"
                 placeholder="1"
                 className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
@@ -92,7 +92,7 @@ export default function VendorUpload() {
             <select className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 appearance-none">
               <option value="">Select a category</option>
               <option value="fashion">Fashion & Apparel</option>
-              <option value="crafts">Handicrafts</option>
+              <option value="crafts">Crafts</option>
               <option value="beauty">Health & Beauty</option>
               <option value="electronics">Electronics</option>
             </select>
@@ -100,7 +100,7 @@ export default function VendorUpload() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-            <textarea 
+            <textarea
               rows={4}
               placeholder="Describe your product..."
               className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50"
@@ -110,8 +110,8 @@ export default function VendorUpload() {
 
         {/* Submit Button */}
         <div className="pt-4">
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             disabled={isSubmitting}
             className="w-full bg-primary text-white font-bold py-4 rounded-xl shadow-md hover:bg-primary-dark transition active:scale-95 disabled:opacity-70 flex justify-center items-center"
           >

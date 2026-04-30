@@ -7,9 +7,9 @@
 6 silly config load:file:/usr/local/etc/npmrc
 7 verbose title npm config get registry
 8 verbose argv "config" "get" "registry"
-9 verbose logfile logs-max:10 dir:/Users/benjamin/Projects/Kuva-v2/kuva-latest/.npm-cache/_logs/2026-04-29T05_17_30_030Z-
-10 verbose logfile /Users/benjamin/Projects/Kuva-v2/kuva-latest/.npm-cache/_logs/2026-04-29T05_17_30_030Z-debug-0.log
-11 silly logfile done cleaning log files
+9 verbose logfile logs-max:10 dir:/Users/benjamin/Projects/Kuva-v2/kuva-latest/.npm-cache/_logs/2026-04-30T06_45_23_746Z-
+10 verbose logfile /Users/benjamin/Projects/Kuva-v2/kuva-latest/.npm-cache/_logs/2026-04-30T06_45_23_746Z-debug-0.log
+11 silly logfile start cleaning logs, removing 1 files
 12 verbose cwd /Users/benjamin/Projects/Kuva-v2/kuva-latest
 13 verbose os Darwin 25.1.0
 14 verbose node v24.11.0

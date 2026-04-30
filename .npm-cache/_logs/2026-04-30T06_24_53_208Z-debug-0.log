@@ -7,8 +7,8 @@
 6 silly config load:file:/usr/local/etc/npmrc
 7 verbose title npm run dev
 8 verbose argv "run" "dev"
-9 verbose logfile logs-max:10 dir:/Users/benjamin/Projects/Kuva-v2/kuva-latest/.npm-cache/_logs/2026-04-29T05_17_29_020Z-
-10 verbose logfile /Users/benjamin/Projects/Kuva-v2/kuva-latest/.npm-cache/_logs/2026-04-29T05_17_29_020Z-debug-0.log
+9 verbose logfile logs-max:10 dir:/Users/benjamin/Projects/Kuva-v2/kuva-latest/.npm-cache/_logs/2026-04-30T06_24_53_208Z-
+10 verbose logfile /Users/benjamin/Projects/Kuva-v2/kuva-latest/.npm-cache/_logs/2026-04-30T06_24_53_208Z-debug-0.log
 11 silly logfile done cleaning log files
 12 verbose cwd /Users/benjamin/Projects/Kuva-v2/kuva-latest
 13 verbose os Darwin 25.1.0
