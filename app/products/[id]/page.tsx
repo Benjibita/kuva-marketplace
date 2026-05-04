@@ -16,6 +16,7 @@ export default async function ProductDetailPage({
     .from("products")
     .select("id, title, price_ugx, images, stock")
     .eq("id", params.id)
+    .is("deleted_at", null)
     .maybeSingle();
 
   if (!product) notFound();

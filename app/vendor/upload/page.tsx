@@ -145,6 +145,7 @@ export default function VendorUpload() {
         stock: parseInt(stock, 10),
         category: category || null,
         images: uploadedUrls,
+        deleted_at: null,
       });
 
       if (insertError) {

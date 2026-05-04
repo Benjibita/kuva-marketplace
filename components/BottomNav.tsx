@@ -2,14 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, ShoppingBag, ShoppingCart, User } from "lucide-react";
+import { Home, Search, ShoppingCart, User } from "lucide-react";
 
 const items = [
   { href: "/", label: "Home", icon: Home, match: (p: string) => p === "/" },
   {
     href: "/products",
-    label: "Shop",
-    icon: ShoppingBag,
+    label: "Browse",
+    icon: Search,
     match: (p: string) => p.startsWith("/products"),
   },
   {

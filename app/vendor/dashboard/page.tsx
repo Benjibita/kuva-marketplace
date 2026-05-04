@@ -2,8 +2,13 @@ import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Plus, Package, Edit3, Settings, ArrowLeft } from 'lucide-react'
+import { SoftDeleteProductButton } from '@/components/SoftDeleteProductButton'
 
-export default async function VendorDashboard() {
+export default async function VendorDashboard({
+  searchParams,
+}: {
+  searchParams: Record<string, string | string[] | undefined>
+}) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -15,7 +20,13 @@ export default async function VendorDashboard() {
     .from('products')
     .select('*')
     .eq('vendor_id', user.id)
+    .is('deleted_at', null)
     .order('created_at', { ascending: false })
+
+  const message =
+    typeof searchParams.message === 'string' ? searchParams.message : undefined
+  const error =
+    typeof searchParams.error === 'string' ? searchParams.error : undefined
 
   return (
     <main className="min-h-screen bg-gray-50 pb-20">
@@ -32,6 +43,17 @@ export default async function VendorDashboard() {
       </header>
 
       <div className="space-y-6 p-4">
+        {message && (
+          <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 anim-slide-in-bottom">
+            {message}
+          </div>
+        )}
+        {error && (
+          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 anim-slide-in-bottom">
+            {error}
+          </div>
+        )}
+
         <div className="flex items-center justify-between rounded-2xl border border-gray-100 bg-white p-6 shadow-sm anim-slide-in-bottom anim-delay-100">
           <div>
             <h2 className="text-xl font-bold text-gray-900">{user.user_metadata.business_name || 'My Shop'}</h2>
@@ -69,12 +91,16 @@ export default async function VendorDashboard() {
                     <span>Stock: {product.stock}</span>
                   </div>
                 </div>
-                <Link 
-                  href={`/vendor/edit-product/${product.id}`}
-                  className="p-2 bg-orange-50 text-primary rounded-full hover:bg-orange-100 transition"
-                >
-                  <Edit3 className="w-5 h-5" />
-                </Link>
+                <div className="flex shrink-0 items-center gap-2">
+                  <Link
+                    href={`/vendor/edit-product/${product.id}`}
+                    className="rounded-full bg-orange-50 p-2 text-primary transition hover:bg-orange-100"
+                    aria-label="Edit product"
+                  >
+                    <Edit3 className="h-5 w-5" />
+                  </Link>
+                  <SoftDeleteProductButton productId={product.id} compact />
+                </div>
               </div>
             ))}
           </div>

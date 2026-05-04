@@ -5,7 +5,11 @@ export default async function SupabaseTestPage() {
 
   // We'll test the connection by querying the products table we scaffolded earlier.
   // Using limit(1) makes it a very light query.
-  const { data, error, status } = await supabase.from("products").select("*").limit(1);
+  const { data, error, status } = await supabase
+    .from("products")
+    .select("*")
+    .is("deleted_at", null)
+    .limit(1);
 
   const isConnected = !error || error.code === 'PGRST116'; // PGRST116 is "no rows returned"
 
