@@ -46,7 +46,7 @@ export async function signup(formData: FormData) {
     }
   }
 
-  const { error } = await supabase.auth.signUp({
+  const { data: signUpData, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
@@ -60,6 +60,15 @@ export async function signup(formData: FormData) {
 
   if (error) {
     return redirect('/signup?message=Could not create user. Please try again.')
+  }
+
+  // Insert the profile row so vendor_id FK on products is satisfied
+  if (signUpData.user) {
+    await supabase.from('profiles').upsert({
+      id: signUpData.user.id,
+      role: role as 'vendor' | 'buyer',
+      business_name: businessName || null,
+    })
   }
 
   revalidatePath('/', 'layout')

@@ -70,24 +70,31 @@ export default function EditProductPage() {
 
   if (isSuccess) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-gray-50 text-center">
-        <CheckCircle className="w-16 h-16 text-green-500 mb-4" />
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Saved!</h2>
-        <p className="text-gray-600">Product updated successfully.</p>
+      <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 p-6 text-center">
+        <CheckCircle className="anim-slide-in-bottom mb-4 h-16 w-16 text-green-500" />
+        <h2 className="anim-slide-in-bottom anim-delay-100 mb-2 text-2xl font-bold text-gray-900">
+          Saved!
+        </h2>
+        <p className="anim-slide-in-bottom anim-delay-200 text-gray-600">
+          Product updated successfully.
+        </p>
       </div>
     );
   }
 
   return (
     <main className="min-h-screen bg-gray-50 pb-10">
-      <header className="bg-white border-b border-gray-100 px-4 py-4 flex items-center gap-3 sticky top-0 z-50">
+      <header className="sticky top-0 z-50 flex items-center gap-3 border-b border-gray-100 bg-white px-4 py-4 anim-slide-in-bottom">
         <Link href="/vendor/dashboard" className="p-2 -ml-2 text-gray-600 active:bg-gray-100 rounded-full transition">
           <ArrowLeft className="w-6 h-6" />
         </Link>
         <h1 className="text-lg font-bold text-gray-900">Edit Product</h1>
       </header>
 
-      <form onSubmit={handleSubmit} className="p-4 space-y-6">
+      <form
+        onSubmit={handleSubmit}
+        className="anim-slide-in-bottom anim-delay-100 space-y-6 p-4"
+      >
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Product Title</label>

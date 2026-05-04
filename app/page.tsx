@@ -1,119 +1,197 @@
-import { Search, ShoppingBag, Store, TrendingUp, Menu } from "lucide-react";
+import {
+  ArrowUpRight,
+  Search,
+  ShoppingBag,
+  Store,
+  ChevronRight,
+} from "lucide-react";
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
 import { UserMenu } from "@/components/UserMenu";
 import { WelcomeBanner } from "@/components/WelcomeBanner";
+import { ProductCard } from "@/components/ProductCard";
+
+const CATEGORIES = [
+  "All",
+  "Fashion",
+  "Crafts",
+  "Electronics",
+  "Groceries",
+  "Beauty",
+  "Home",
+];
 
 export default async function Home() {
   const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const { data: products, error: productsError } = await supabase
+    .from("products")
+    .select(`
+      id,
+      title,
+      price_ugx,
+      images,
+      category,
+      stock,
+      vendor:profiles!vendor_id (
+        business_name
+      )
+    `)
+    .order("created_at", { ascending: false })
+    .limit(20);
+
+  const safeProducts = products ?? [];
 
   return (
-    <main className="min-h-screen pb-20">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100 px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Menu className="w-6 h-6 text-gray-700" />
-          <h1 className="text-xl font-bold text-primary tracking-tight">Kuva</h1>
-        </div>
-        <div className="flex items-center gap-4">
-          <Search className="w-6 h-6 text-gray-700" />
+    <main className="min-h-screen">
+      <header className="sticky top-0 z-40 flex items-center justify-between border-b border-kuva-line/70 bg-kuva-cream/90 px-4 py-3.5 backdrop-blur-md anim-slide-in-bottom">
+        <h1 className="text-lg font-semibold tracking-tight text-gray-900">
+          KUVA
+        </h1>
+        <div className="flex items-center gap-1">
+          <Link
+            href="/products"
+            className="flex h-11 w-11 items-center justify-center rounded-full text-gray-800 transition hover:bg-white active:scale-95"
+            aria-label="Search products (coming soon)"
+          >
+            <Search className="h-5 w-5" strokeWidth={1.75} />
+          </Link>
           {user ? (
             <UserMenu role={user.user_metadata.role} />
           ) : (
-            <Link href="/login" className="text-sm font-semibold text-primary hover:underline">
+            <Link
+              href="/login"
+              className="rounded-full px-3 py-2 text-sm font-medium text-gray-800 transition hover:bg-white active:scale-95"
+            >
               Log in
             </Link>
           )}
-          <div className="relative">
-            <ShoppingBag className="w-6 h-6 text-gray-700" />
-            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold h-4 w-4 rounded-full flex items-center justify-center">
-              2
+          <Link
+            href="/cart"
+            className="relative flex h-11 w-11 items-center justify-center rounded-full text-gray-800 transition hover:bg-white active:scale-95"
+            aria-label="Cart"
+          >
+            <ShoppingBag className="h-5 w-5" strokeWidth={1.75} />
+            <span className="absolute right-0.5 top-1 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-kuva-accent px-0.5 text-[10px] font-bold leading-none text-white">
+              0
             </span>
-          </div>
+          </Link>
         </div>
       </header>
 
       {user && <WelcomeBanner name={user.user_metadata?.name} />}
 
-      {/* Hero Section */}
-      <section className={`px-4 ${user ? 'pt-2' : 'pt-6'} pb-4 anim-slide-in-bottom anim-delay-300`}>
-        <div className="bg-gradient-to-r from-orange-100 to-orange-50 rounded-2xl p-5 border border-orange-100">
-          <h3 className="text-2xl font-bold text-gray-900 mb-2">
-            Support Local. Shop Ugandan.
-          </h3>
-          <p className="text-gray-600 mb-4 text-sm">
-            Discover unique products from the best SMEs in Kampala and beyond.
+      {/* Discovery cards */}
+      <section
+        className={`grid grid-cols-2 gap-3 px-4 anim-slide-in-bottom anim-delay-150 ${user ? "pt-3" : "pt-5"}`}
+      >
+        <Link
+          href="/products"
+          className="relative flex min-h-[120px] flex-col justify-between overflow-hidden rounded-4xl bg-kuva-lavender p-4 text-left shadow-card transition hover:shadow-card-hover active:scale-[0.98]"
+        >
+          <p className="max-w-[85%] text-sm font-semibold leading-snug text-gray-900">
+            Explore all products
           </p>
-          <button className="bg-primary text-white font-semibold py-2.5 px-6 rounded-full shadow-md hover:bg-primary-dark transition active:scale-95">
-            Shop Now
-          </button>
-        </div>
+          <span className="ml-auto flex h-9 w-9 items-center justify-center rounded-full bg-white text-gray-900 shadow-sm">
+            <ArrowUpRight className="h-4 w-4" strokeWidth={2} />
+          </span>
+        </Link>
+        <button
+          type="button"
+          className="relative flex min-h-[120px] flex-col justify-between overflow-hidden rounded-4xl bg-white p-4 text-left shadow-card transition hover:shadow-card-hover active:scale-[0.98]"
+        >
+          <p className="max-w-[85%] text-sm font-semibold leading-snug text-gray-900">
+            Top selling picks
+          </p>
+          <span className="ml-auto flex h-9 w-9 items-center justify-center rounded-full bg-kuva-surface text-gray-900">
+            <ArrowUpRight className="h-4 w-4" strokeWidth={2} />
+          </span>
+        </button>
       </section>
 
-      {/* Quick Categories */}
-      <section className="px-4 py-4 anim-slide-in-bottom anim-delay-500">
-        <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-          <TrendingUp className="w-5 h-5 text-primary" /> Popular Categories
-        </h3>
-        <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-          {["Fashion", "Crafts", "Electronics", "Groceries", "Beauty"].map((category) => (
+      {/* Categories */}
+      <section className="px-4 pt-6 anim-slide-in-bottom anim-delay-300">
+        <h3 className="mb-3 text-sm font-semibold text-gray-900">Categories</h3>
+        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+          {CATEGORIES.map((cat) => (
             <button
-              key={category}
-              className="whitespace-nowrap px-4 py-2 bg-gray-100 hover:bg-gray-200 text-sm font-medium rounded-full text-gray-800 transition"
+              key={cat}
+              type="button"
+              className="whitespace-nowrap rounded-full bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-card transition hover:bg-kuva-lavender/50 active:scale-95"
             >
-              {category}
+              {cat}
             </button>
           ))}
         </div>
       </section>
 
-      {/* Featured Products Grid */}
-      <section className="px-4 py-4 anim-slide-in-bottom anim-delay-700">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-gray-900">Top Rated Products</h3>
-          <Link href="/products" className="text-sm text-primary font-medium">See All</Link>
+      {/* Products */}
+      <section className="px-4 py-6 anim-slide-in-bottom anim-delay-400">
+        <div className="mb-4 flex items-end justify-between">
+          <h3 className="text-base font-semibold text-gray-900">
+            {safeProducts.length > 0 ? "Popular products" : "Products"}
+          </h3>
+          <Link
+            href="/products"
+            className="flex items-center gap-0.5 text-sm font-medium text-gray-600 transition hover:text-gray-900"
+          >
+            See all
+            <ChevronRight className="h-4 w-4" strokeWidth={2} />
+          </Link>
         </div>
-        <div className="grid grid-cols-2 gap-3">
-          {/* Product 1 */}
-          <div className="bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm">
-            <div className="aspect-square bg-gray-100 relative">
-              <div className="absolute inset-0 flex items-center justify-center text-gray-400">Image</div>
-              <div className="absolute top-2 left-2 bg-white/90 backdrop-blur px-2 py-0.5 rounded text-xs font-bold text-gray-900">
-                ⭐ 4.8
-              </div>
-            </div>
-            <div className="p-3">
-              <p className="text-xs text-gray-500 mb-1">Kampala Crafts</p>
-              <h4 className="font-medium text-sm text-gray-900 line-clamp-1 mb-1">Woven Basket</h4>
-              <p className="text-primary font-bold text-sm">UGX 35,000</p>
-            </div>
-          </div>
 
-          {/* Product 2 */}
-          <div className="bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm">
-            <div className="aspect-square bg-gray-100 relative">
-              <div className="absolute inset-0 flex items-center justify-center text-gray-400">Image</div>
-            </div>
-            <div className="p-3">
-              <p className="text-xs text-gray-500 mb-1">Buziga Organics</p>
-              <h4 className="font-medium text-sm text-gray-900 line-clamp-1 mb-1">Shea Butter Lotion</h4>
-              <p className="text-primary font-bold text-sm">UGX 20,000</p>
-            </div>
+        {productsError && (
+          <div className="anim-slide-in-bottom mb-4 rounded-3xl border border-kuva-accent/30 bg-white px-4 py-3 text-sm text-kuva-accent anim-delay-100">
+            Could not load products right now. Please refresh.
           </div>
-        </div>
+        )}
+
+        {!productsError && safeProducts.length === 0 && (
+          <div className="anim-slide-in-bottom anim-delay-150 rounded-5xl border border-dashed border-kuva-line bg-white px-6 py-12 text-center shadow-card">
+            <Store
+              className="mx-auto mb-3 h-12 w-12 text-gray-300"
+              strokeWidth={1.25}
+            />
+            <p className="font-medium text-gray-600">No products yet</p>
+            <p className="mt-1 text-sm text-gray-400">
+              Be the first to list something on KUVA.
+            </p>
+          </div>
+        )}
+
+        {safeProducts.length > 0 && (
+          <div className="grid grid-cols-2 gap-3">
+            {safeProducts.map((product, i) => (
+              <div
+                key={product.id}
+                className="anim-slide-in-bottom"
+                style={{ animationDelay: `${500 + Math.min(i, 10) * 45}ms` }}
+              >
+                <ProductCard product={product as any} />
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
-      {/* Vendor Call to Action */}
-      <section className="px-4 py-6 mt-4 anim-slide-in-bottom anim-delay-1000">
-        <div className="bg-gray-900 rounded-2xl p-5 text-center">
-          <Store className="w-10 h-10 text-primary mx-auto mb-3" />
-          <h3 className="text-white font-bold text-lg mb-2">Sell on Kuva</h3>
-          <p className="text-gray-400 text-sm mb-4">
-            Reach thousands of buyers across Uganda. Fast payouts via Mobile Money.
+      {/* Vendor CTA */}
+      <section className="px-4 pb-8 anim-slide-in-bottom anim-delay-700">
+        <div className="overflow-hidden rounded-5xl bg-black px-5 py-6 text-center shadow-card">
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-white/10">
+            <Store className="h-6 w-6 text-kuva-lavender" strokeWidth={1.75} />
+          </div>
+          <h3 className="text-lg font-semibold text-white">Sell on KUVA</h3>
+          <p className="mt-2 text-sm text-white/65">
+            Reach buyers across Uganda. Payouts via Mobile Money.
           </p>
-          <Link href="/vendor/upload" className="block w-full bg-white text-gray-900 font-bold py-3 rounded-xl active:scale-95 transition">
-            Open Your Shop
+          <Link
+            href="/vendor/upload"
+            className="mt-5 flex min-h-[48px] w-full items-center justify-center rounded-full bg-white text-sm font-semibold text-gray-900 transition hover:bg-kuva-lavender active:scale-[0.98]"
+          >
+            Open your shop
           </Link>
         </div>
       </section>

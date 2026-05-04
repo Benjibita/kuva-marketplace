@@ -1,7 +1,7 @@
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
-import { deleteAccount } from '@/app/login/actions'
-import { ArrowLeft, Trash2, User } from 'lucide-react'
+import { deleteAccount, logout } from '@/app/login/actions'
+import { ArrowLeft, LogOut, Trash2, User } from 'lucide-react'
 import Link from 'next/link'
 
 export default async function SettingsPage() {
@@ -16,7 +16,7 @@ export default async function SettingsPage() {
 
   return (
     <main className="min-h-screen bg-gray-50 pb-20">
-      <header className="sticky top-0 z-50 bg-white border-b border-gray-100 px-4 py-3 flex items-center">
+      <header className="sticky top-0 z-50 bg-white border-b border-gray-100 px-4 py-3 flex items-center anim-slide-in-bottom">
         <Link href="/" className="mr-4 text-gray-700 hover:text-primary transition">
           <ArrowLeft className="w-6 h-6" />
         </Link>
@@ -24,7 +24,7 @@ export default async function SettingsPage() {
       </header>
 
       <div className="max-w-2xl mx-auto p-4 mt-6">
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-6">
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-6 anim-slide-in-bottom anim-delay-150">
           <div className="flex items-center gap-4 mb-6">
             <div className="bg-orange-100 p-4 rounded-full text-primary">
               <User className="w-8 h-8" />
@@ -51,7 +51,19 @@ export default async function SettingsPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-red-100">
+        <div className="mb-6 rounded-2xl border border-gray-100 bg-white p-6 shadow-sm anim-slide-in-bottom anim-delay-225">
+          <form action={logout}>
+            <button
+              type="submit"
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white py-3 px-4 text-sm font-semibold text-gray-800 transition hover:bg-gray-50 active:scale-[0.99]"
+            >
+              <LogOut className="h-5 w-5" strokeWidth={2} />
+              Log out
+            </button>
+          </form>
+        </div>
+
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-red-100 anim-slide-in-bottom anim-delay-300">
           <h3 className="text-lg font-bold text-red-600 mb-2">Danger Zone</h3>
           <p className="text-sm text-gray-500 mb-4">
             Once you delete your account, there is no going back. Please be certain.

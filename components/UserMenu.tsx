@@ -23,20 +23,22 @@ export function UserMenu({ role }: { role?: string }) {
 
   return (
     <div className="relative" ref={menuRef}>
-      <button 
+      <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-center bg-gray-100 p-2 rounded-full hover:bg-gray-200 transition"
+        className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-gray-800 shadow-card transition hover:bg-kuva-surface active:scale-95"
+        aria-expanded={isOpen}
+        aria-haspopup="true"
       >
-        <User className="w-5 h-5 text-gray-700" />
+        <User className="h-5 w-5" strokeWidth={1.75} />
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50">
+        <div className="absolute right-0 z-50 mt-2 w-52 rounded-3xl border border-kuva-line bg-white py-1 shadow-card-hover">
           {role === 'vendor' && (
             <Link 
               href="/vendor/dashboard"
               onClick={() => setIsOpen(false)}
-              className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+              className="flex items-center px-4 py-2.5 text-sm text-gray-700 transition hover:bg-kuva-surface"
             >
               <LayoutDashboard className="w-4 h-4 mr-2" />
               Vendor Dashboard
@@ -45,7 +47,7 @@ export function UserMenu({ role }: { role?: string }) {
           <Link 
             href="/settings"
             onClick={() => setIsOpen(false)}
-            className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+            className="flex items-center px-4 py-2.5 text-sm text-gray-700 transition hover:bg-kuva-surface"
           >
             <Settings className="w-4 h-4 mr-2" />
             Account Settings

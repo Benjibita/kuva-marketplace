@@ -26,8 +26,8 @@ export function WelcomeBanner({ name }: { name?: string }) {
   if (!greeting) return null
 
   return (
-    <div className="px-4 pt-6 pb-2 anim-slide-in-left">
-      <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">
+    <div className="px-4 pt-5 pb-1 anim-slide-in-left">
+      <h2 className="text-2xl font-semibold tracking-tight text-gray-900">
         {greeting}
       </h2>
     </div>
