@@ -6,6 +6,8 @@ export interface Product {
   id: string;
   title: string;
   price_ugx: number;
+  is_on_sale?: boolean | null;
+  sale_price_ugx?: number | null;
   images: string[];
   category: string | null;
   stock: number;
@@ -22,6 +24,15 @@ export function ProductCard({ product }: ProductCardProps) {
   const hasImage = product.images && product.images.length > 0;
   const isOutOfStock = product.stock === 0;
   const vendorName = product.vendor?.business_name?.trim() || "Local vendor";
+  const hasSale =
+    product.is_on_sale === true &&
+    product.sale_price_ugx != null &&
+    product.sale_price_ugx > 0 &&
+    product.sale_price_ugx < product.price_ugx;
+  const displayPrice = hasSale ? product.sale_price_ugx! : product.price_ugx;
+  const discountPct = hasSale
+    ? Math.round(((product.price_ugx - product.sale_price_ugx!) / product.price_ugx) * 100)
+    : 0;
   const itemLabel =
     product.stock === 0 ? "Out of stock" : `${product.stock} items`;
 
@@ -36,12 +47,15 @@ export function ProductCard({ product }: ProductCardProps) {
         <div className="absolute left-3 top-3 z-10 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-medium text-gray-700 shadow-sm backdrop-blur-sm">
           {itemLabel}
         </div>
-        <div
-          className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-kuva-accent shadow-sm backdrop-blur-sm"
-          aria-hidden
-        >
-          <Flame className="h-3.5 w-3.5" strokeWidth={2} />
-        </div>
+        {hasSale && (
+          <div
+            className="absolute right-3 top-3 z-10 flex min-h-8 min-w-8 items-center justify-center rounded-full bg-white/90 px-2 text-[11px] font-semibold text-kuva-accent shadow-sm backdrop-blur-sm"
+            aria-label={`${discountPct}% off`}
+          >
+            <Flame className="mr-1 h-3.5 w-3.5" strokeWidth={2} />
+            -{discountPct}%
+          </div>
+        )}
 
         {hasImage ? (
           <Image
@@ -75,9 +89,16 @@ export function ProductCard({ product }: ProductCardProps) {
           <p className="mt-1 truncate text-[11px] font-normal leading-tight text-gray-500">
             {vendorName}
           </p>
-          <p className="mt-1.5 text-base font-bold text-gray-900">
-            UGX {product.price_ugx.toLocaleString()}
-          </p>
+          <div className="mt-1.5 flex items-end gap-2">
+            <p className="text-base font-bold text-gray-900">
+              UGX {displayPrice.toLocaleString()}
+            </p>
+            {hasSale && (
+              <p className="text-[11px] text-gray-400 line-through">
+                UGX {product.price_ugx.toLocaleString()}
+              </p>
+            )}
+          </div>
         </div>
         <span
           className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-kuva-surface text-gray-900 transition group-hover:bg-black group-hover:text-white"

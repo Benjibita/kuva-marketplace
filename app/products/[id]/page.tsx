@@ -14,7 +14,7 @@ export default async function ProductDetailPage({
   const supabase = createClient();
   const { data: product } = await supabase
     .from("products")
-    .select("id, title, price_ugx, images, stock")
+    .select("id, title, price_ugx, is_on_sale, sale_price_ugx, images, stock")
     .eq("id", params.id)
     .is("deleted_at", null)
     .maybeSingle();
@@ -22,8 +22,12 @@ export default async function ProductDetailPage({
   if (!product) notFound();
 
   const imageUrl = product.images?.[0];
-  const showDiscountPlaceholder = true;
-  const listPrice = Math.round(product.price_ugx * 1.07);
+  const hasSale =
+    product.is_on_sale === true &&
+    product.sale_price_ugx != null &&
+    product.sale_price_ugx > 0 &&
+    product.sale_price_ugx < product.price_ugx;
+  const displayPrice = hasSale ? product.sale_price_ugx! : product.price_ugx;
 
   return (
     <main className="min-h-screen bg-kuva-cream pb-36">
@@ -139,13 +143,13 @@ export default async function ProductDetailPage({
         </div>
 
         <div className="mt-6 flex flex-wrap items-end gap-3 anim-slide-in-bottom anim-delay-400">
-          {showDiscountPlaceholder && (
+          {hasSale && (
             <p className="text-sm text-kuva-accent line-through">
-              UGX {listPrice.toLocaleString()}
+              UGX {product.price_ugx.toLocaleString()}
             </p>
           )}
           <p className="text-2xl font-bold text-gray-900">
-            UGX {product.price_ugx.toLocaleString()}
+            UGX {displayPrice.toLocaleString()}
           </p>
         </div>
 

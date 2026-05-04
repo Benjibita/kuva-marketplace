@@ -21,11 +21,14 @@ export default function EditProductPage() {
   const [price, setPrice] = useState("");
   const [stock, setStock] = useState("");
   const [description, setDescription] = useState("");
+  const [isOnSale, setIsOnSale] = useState(false);
+  const [salePrice, setSalePrice] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [notFound, setNotFound] = useState(false);
   const [unauthorized, setUnauthorized] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) {
@@ -73,6 +76,10 @@ export default function EditProductPage() {
         setPrice(data.price_ugx.toString());
         setStock(data.stock.toString());
         setDescription(data.description || "");
+        setIsOnSale(Boolean(data.is_on_sale));
+        setSalePrice(
+          data.sale_price_ugx == null ? "" : data.sale_price_ugx.toString(),
+        );
       } catch (e) {
         console.error("[EditProduct] load unexpected", e);
         setNotFound(true);
@@ -88,6 +95,7 @@ export default function EditProductPage() {
     e.preventDefault();
     if (!id) return;
 
+    setError(null);
     setIsSaving(true);
 
     try {
@@ -97,17 +105,35 @@ export default function EditProductPage() {
 
       if (!user || user.user_metadata?.role !== "vendor") {
         setUnauthorized(true);
-        setIsSaving(false);
         return;
+      }
+
+      const basePrice = parseFloat(price);
+      const parsedSalePrice = salePrice.trim() ? parseFloat(salePrice) : NaN;
+      if (Number.isNaN(basePrice) || basePrice <= 0) {
+        setError("Enter a valid base price.");
+        return;
+      }
+      if (isOnSale) {
+        if (Number.isNaN(parsedSalePrice) || parsedSalePrice <= 0) {
+          setError("Enter a valid sale price.");
+          return;
+        }
+        if (parsedSalePrice >= basePrice) {
+          setError("Sale price must be lower than regular price.");
+          return;
+        }
       }
 
       const { error: updateError } = await supabase
         .from("products")
         .update({
           title,
-          price_ugx: parseFloat(price),
+          price_ugx: basePrice,
           stock: parseInt(stock, 10),
           description,
+          is_on_sale: isOnSale,
+          sale_price_ugx: isOnSale ? parsedSalePrice : null,
           updated_at: new Date().toISOString(),
         })
         .eq("id", id)
@@ -116,6 +142,7 @@ export default function EditProductPage() {
 
       if (updateError) {
         console.error("[EditProduct] update", updateError);
+        setError("Could not save changes. Please try again.");
         return;
       }
 
@@ -125,6 +152,7 @@ export default function EditProductPage() {
       }, 1500);
     } catch (err) {
       console.error("[EditProduct] submit", err);
+      setError("Something went wrong while saving.");
     } finally {
       setIsSaving(false);
     }
@@ -199,6 +227,11 @@ export default function EditProductPage() {
         onSubmit={handleSubmit}
         className="anim-slide-in-bottom anim-delay-100 space-y-6 p-4"
       >
+        {error && (
+          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {error}
+          </div>
+        )}
         <div className="space-y-4">
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">
@@ -238,6 +271,34 @@ export default function EditProductPage() {
                 className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
             </div>
+          </div>
+
+          <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+            <label className="flex items-center justify-between gap-3 text-sm font-medium text-gray-700">
+              <span>Enable sale price</span>
+              <input
+                type="checkbox"
+                checked={isOnSale}
+                onChange={(e) => setIsOnSale(e.target.checked)}
+                className="h-4 w-4 accent-black"
+              />
+            </label>
+            {isOnSale && (
+              <div className="mt-3">
+                <label className="mb-1 block text-sm font-medium text-gray-700">
+                  Sale Price (UGX)
+                </label>
+                <input
+                  required={isOnSale}
+                  type="number"
+                  min="0"
+                  step="100"
+                  value={salePrice}
+                  onChange={(e) => setSalePrice(e.target.value)}
+                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                />
+              </div>
+            )}
           </div>
 
           <div>

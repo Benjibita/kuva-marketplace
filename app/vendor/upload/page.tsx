@@ -42,6 +42,8 @@ export default function VendorUpload() {
   const [stock, setStock] = useState("");
   const [category, setCategory] = useState("");
   const [description, setDescription] = useState("");
+  const [isOnSale, setIsOnSale] = useState(false);
+  const [salePrice, setSalePrice] = useState("");
   const [images, setImages] = useState<ImageFile[]>([]);
 
   // UI state
@@ -102,6 +104,20 @@ export default function VendorUpload() {
         throw new Error("You must be logged in to add a product.");
       }
 
+      const basePrice = parseFloat(price);
+      const parsedSalePrice = salePrice.trim() ? parseFloat(salePrice) : NaN;
+      if (Number.isNaN(basePrice) || basePrice <= 0) {
+        throw new Error("Enter a valid base price.");
+      }
+      if (isOnSale) {
+        if (Number.isNaN(parsedSalePrice) || parsedSalePrice <= 0) {
+          throw new Error("Enter a valid sale price.");
+        }
+        if (parsedSalePrice >= basePrice) {
+          throw new Error("Sale price must be lower than the regular price.");
+        }
+      }
+
       // 2. Upload images to Supabase Storage
       const uploadedUrls: string[] = [];
 
@@ -141,9 +157,11 @@ export default function VendorUpload() {
         vendor_id: user.id,
         title: title.trim(),
         description: description.trim() || null,
-        price_ugx: parseFloat(price),
+        price_ugx: basePrice,
         stock: parseInt(stock, 10),
         category: category || null,
+        is_on_sale: isOnSale,
+        sale_price_ugx: isOnSale ? parsedSalePrice : null,
         images: uploadedUrls,
         deleted_at: null,
       });
@@ -171,6 +189,8 @@ export default function VendorUpload() {
     setStock("");
     setCategory("");
     setDescription("");
+    setIsOnSale(false);
+    setSalePrice("");
     setError(null);
     setIsSuccess(false);
   };
@@ -363,6 +383,35 @@ export default function VendorUpload() {
                 className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/40 focus:bg-white transition"
               />
             </div>
+          </div>
+
+          <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+            <label className="flex items-center justify-between gap-3 text-sm font-medium text-gray-700">
+              <span>Enable sale price</span>
+              <input
+                type="checkbox"
+                checked={isOnSale}
+                onChange={(e) => setIsOnSale(e.target.checked)}
+                className="h-4 w-4 accent-black"
+              />
+            </label>
+            {isOnSale && (
+              <div className="mt-3">
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                  Sale Price (UGX) <span className="text-red-400">*</span>
+                </label>
+                <input
+                  required={isOnSale}
+                  type="number"
+                  min="0"
+                  step="100"
+                  value={salePrice}
+                  onChange={(e) => setSalePrice(e.target.value)}
+                  placeholder="0"
+                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/40"
+                />
+              </div>
+            )}
           </div>
 
           {/* Category */}

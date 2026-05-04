@@ -33,6 +33,8 @@ export default async function Home() {
       id,
       title,
       price_ugx,
+      is_on_sale,
+      sale_price_ugx,
       images,
       category,
       stock,
