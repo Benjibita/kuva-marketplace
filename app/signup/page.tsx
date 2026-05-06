@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { signup } from '@/app/login/actions'
 import { ArrowLeft, ShoppingBag, Store } from 'lucide-react'
@@ -8,30 +9,40 @@ import { ArrowLeft, ShoppingBag, Store } from 'lucide-react'
 export default function SignupPage({
   searchParams,
 }: {
-  searchParams: { message: string }
+  searchParams: { message?: string; next?: string }
 }) {
   const [role, setRole] = useState<'buyer' | 'vendor' | null>(null)
+  const router = useRouter()
+
+  const goBack = () => {
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      router.back()
+      return
+    }
+    router.push('/login')
+  }
 
   return (
     <div className="flex-1 flex flex-col w-full px-8 sm:max-w-md justify-center gap-2 min-h-screen mx-auto">
-      <Link
-        href={role ? "#" : "/login"}
-        onClick={(e) => {
+      <button
+        type="button"
+        onClick={() => {
           if (role) {
-            e.preventDefault();
-            setRole(null);
+            setRole(null)
+            return
           }
+          goBack()
         }}
-        className="anim-slide-in-bottom absolute left-8 top-8 flex items-center rounded-md bg-btn-background px-4 py-2 text-sm text-foreground no-underline hover:bg-btn-background-hover group"
+        className="anim-slide-in-bottom absolute left-8 top-8 z-50 flex items-center rounded-md bg-btn-background px-4 py-2 text-sm text-foreground no-underline hover:bg-btn-background-hover group"
       >
         <ArrowLeft className="w-4 h-4 mr-2" />
         Back
-      </Link>
+      </button>
 
       {!role ? (
         <div className="flex w-full flex-1 flex-col justify-center gap-6">
           <div className="anim-slide-in-bottom mb-4 flex flex-col items-center gap-2 text-center anim-delay-100">
-            <h1 className="text-3xl font-bold text-primary">Join Kuva</h1>
+            <h1 className="text-3xl font-bold text-primary">Join KUVA</h1>
             <p className="text-sm text-gray-500">How would you like to use our platform?</p>
           </div>
 
@@ -69,8 +80,8 @@ export default function SignupPage({
           </div>
         </div>
       ) : (
-        <form className="flex w-full flex-1 flex-col justify-center gap-2 text-foreground">
-          <div className="anim-slide-in-bottom mb-6 flex flex-col items-center gap-2 text-center anim-delay-75">
+        <form className="flex w-full flex-1 flex-col gap-2 py-6 text-foreground">
+          <div className="anim-slide-in-bottom mb-6 flex min-h-[20vh] flex-col items-center justify-center gap-2 text-center anim-delay-75">
             <h1 className="text-3xl font-bold text-primary">Create Account</h1>
             <p className="text-gray-500 text-sm">
               Signing up as a <span className="font-bold capitalize text-gray-900">{role}</span>
@@ -78,6 +89,7 @@ export default function SignupPage({
           </div>
 
           <input type="hidden" name="role" value={role} />
+          <input type="hidden" name="next" value={searchParams?.next || ''} />
 
           <label className="anim-slide-in-bottom anim-delay-100 text-sm font-medium" htmlFor="name">
             Full Name
@@ -109,11 +121,24 @@ export default function SignupPage({
             name="email"
             required
           />
-          <label className="anim-slide-in-bottom anim-delay-350 text-sm font-medium" htmlFor="password">
+          <label className="anim-slide-in-bottom anim-delay-325 text-sm font-medium" htmlFor="phone_number">
+            Telephone Number
+          </label>
+          <input
+            className="anim-slide-in-bottom anim-delay-350 mb-4 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 transition focus:outline-none focus:ring-2 focus:ring-primary"
+            type="tel"
+            name="phone_number"
+            placeholder="+2567XXXXXXXX"
+            required
+          />
+          <p className="anim-slide-in-bottom anim-delay-360 -mt-3 mb-4 text-xs text-gray-500">
+            Accepted formats: 07XXXXXXXX, 2567XXXXXXXX, or +2567XXXXXXXX.
+          </p>
+          <label className="anim-slide-in-bottom anim-delay-375 text-sm font-medium" htmlFor="password">
             Password
           </label>
           <input
-            className="anim-slide-in-bottom anim-delay-400 mb-6 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 transition focus:outline-none focus:ring-2 focus:ring-primary"
+            className="anim-slide-in-bottom anim-delay-425 mb-6 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 transition focus:outline-none focus:ring-2 focus:ring-primary"
             type="password"
             name="password"
             required
@@ -121,7 +146,7 @@ export default function SignupPage({
           
           <button
             formAction={signup}
-            className="anim-slide-in-bottom anim-delay-450 mb-4 rounded-xl bg-primary px-4 py-3 font-semibold text-white shadow-sm transition hover:bg-primary/90 active:scale-[0.98]"
+            className="anim-slide-in-bottom anim-delay-475 mb-4 rounded-xl bg-primary px-4 py-3 font-semibold text-white shadow-sm transition hover:bg-primary/90 active:scale-[0.98]"
           >
             Sign Up
           </button>

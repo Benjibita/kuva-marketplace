@@ -50,40 +50,45 @@ export default async function Home() {
 
   return (
     <main className="min-h-screen">
-      <header className="sticky top-0 z-40 flex items-center justify-between border-b border-kuva-line/70 bg-kuva-cream/90 px-4 py-3.5 backdrop-blur-md anim-slide-in-bottom">
-        <h1 className="text-lg font-semibold tracking-tight text-gray-900">
+      <header className="sticky top-0 z-40 flex items-center justify-center border-b border-kuva-line/70 bg-kuva-cream/30 px-4 py-4 backdrop-blur-md anim-slide-in-bottom">
+        <h1 className="text-3xl font-light tracking-tight text-gray-900">
           KUVA
         </h1>
-        <div className="flex items-center gap-1">
-          <Link
-            href="/products"
-            className="flex h-11 w-11 items-center justify-center rounded-full text-gray-800 transition hover:bg-white active:scale-95"
-            aria-label="Search products (coming soon)"
-          >
-            <Search className="h-5 w-5" strokeWidth={1.75} />
-          </Link>
-          {user ? (
-            <UserMenu role={user.user_metadata.role} />
-          ) : (
-            <Link
-              href="/login"
-              className="rounded-full px-3 py-2 text-sm font-medium text-gray-800 transition hover:bg-white active:scale-95"
-            >
-              Log in
-            </Link>
-          )}
-          <Link
-            href="/cart"
-            className="relative flex h-11 w-11 items-center justify-center rounded-full text-gray-800 transition hover:bg-white active:scale-95"
-            aria-label="Cart"
-          >
-            <ShoppingBag className="h-5 w-5" strokeWidth={1.75} />
-            <span className="absolute right-0.5 top-1 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-kuva-accent px-0.5 text-[10px] font-bold leading-none text-white">
-              0
-            </span>
-          </Link>
-        </div>
       </header>
+
+      {!user && (
+        <section className="px-4 pt-4 anim-slide-in-bottom anim-delay-100">
+          <div className="rounded-4xl border border-kuva-line/70 bg-white/85 p-5 shadow-card backdrop-blur-sm">
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 rounded-full bg-kuva-lavender p-2 text-gray-900">
+                <ShoppingBag className="h-4 w-4" strokeWidth={2} />
+              </div>
+              <div className="flex-1">
+                <h2 className="text-base font-semibold text-gray-900">
+                  Create your account
+                </h2>
+                <p className="mt-1 text-sm text-gray-600">
+                  Save favorites, faster checkouts, manage your profile or even register your store.
+                </p>
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  <Link
+                    href="/signup"
+                    className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-gray-900 px-5 text-sm font-semibold text-white transition hover:bg-black active:scale-[0.98]"
+                  >
+                    Create account
+                  </Link>
+                  <Link
+                    href="/login"
+                    className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-gray-300 bg-white/90 px-5 text-sm font-semibold text-gray-800 transition hover:bg-white active:scale-[0.98]"
+                  >
+                    Sign in
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       {user && <WelcomeBanner name={user.user_metadata?.name} />}
 
@@ -180,24 +185,6 @@ export default async function Home() {
         )}
       </section>
 
-      {/* Vendor CTA */}
-      <section className="px-4 pb-8 anim-slide-in-bottom anim-delay-700">
-        <div className="overflow-hidden rounded-5xl bg-black px-5 py-6 text-center shadow-card">
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-white/10">
-            <Store className="h-6 w-6 text-kuva-lavender" strokeWidth={1.75} />
-          </div>
-          <h3 className="text-lg font-semibold text-white">Sell on KUVA</h3>
-          <p className="mt-2 text-sm text-white/65">
-            Reach buyers across Uganda. Payouts via Mobile Money.
-          </p>
-          <Link
-            href="/vendor/upload"
-            className="mt-5 flex min-h-[48px] w-full items-center justify-center rounded-full bg-white text-sm font-semibold text-gray-900 transition hover:bg-kuva-lavender active:scale-[0.98]"
-          >
-            Open your shop
-          </Link>
-        </div>
-      </section>
     </main>
   );
 }

@@ -1,25 +1,137 @@
+'use client';
+
 import Image from "next/image";
 import Link from "next/link";
-import { notFound } from "next/navigation";
-import { ArrowLeft, Flame, Share2, ShoppingCart } from "lucide-react";
-import { createClient } from "@/utils/supabase/server";
+import { useRouter } from "next/navigation";
+import { ArrowLeft, Flame, Share2, ShoppingCart, Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { createClient } from "@/utils/supabase/client";
+import { addToCart } from "@/app/actions/cart";
+import { useNotification } from "@/app/context/NotificationContext";
+import { addGuestCartItem, getGuestCartCount } from "@/utils/guestCart";
 
 const SIZES = ["S", "M", "L", "XL", "XXL"] as const;
 
-export default async function ProductDetailPage({
+interface Product {
+  id: string;
+  title: string;
+  price_ugx: number;
+  is_on_sale: boolean;
+  sale_price_ugx: number | null;
+  images: string[];
+  stock: number;
+}
+
+export default function ProductDetailPage({
   params,
 }: {
   params: { id: string };
 }) {
+  const [product, setProduct] = useState<Product | null>(null);
+  const [quantity, setQuantity] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [addingToCart, setAddingToCart] = useState(false);
+  const [cartCount, setCartCount] = useState(0);
+  const router = useRouter();
   const supabase = createClient();
-  const { data: product } = await supabase
-    .from("products")
-    .select("id, title, price_ugx, is_on_sale, sale_price_ugx, images, stock")
-    .eq("id", params.id)
-    .is("deleted_at", null)
-    .maybeSingle();
+  const { addNotification } = useNotification();
 
-  if (!product) notFound();
+  useEffect(() => {
+    async function fetchProduct() {
+      const { data } = await supabase
+        .from("products")
+        .select("id, title, price_ugx, is_on_sale, sale_price_ugx, images, stock")
+        .eq("id", params.id)
+        .is("deleted_at", null)
+        .maybeSingle();
+
+      if (!data) {
+        router.push("/not-found");
+        return;
+      }
+
+      setProduct(data);
+      setLoading(false);
+    }
+
+    async function fetchCartCount() {
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (user) {
+          const { data: cartItems } = await supabase
+            .from("cart_items")
+            .select("id", { count: "exact" })
+            .eq("user_id", user.id);
+          setCartCount(cartItems?.length || 0);
+          return;
+        }
+
+        setCartCount(getGuestCartCount());
+      } catch {
+        // Silently fail
+      }
+    }
+
+    fetchProduct();
+    fetchCartCount();
+  }, [params.id, supabase, router]);
+
+  const handleAddToCart = async () => {
+    if (!product) return;
+    setAddingToCart(true);
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (user) {
+        await addToCart(product.id, quantity);
+        setCartCount((prev) => prev + 1);
+      } else {
+        addGuestCartItem(product.id, quantity);
+        setCartCount(getGuestCartCount());
+      }
+      setQuantity(1);
+      addNotification(`✓ ${product.title} added to cart`, 'success');
+    } catch (error) {
+      addNotification(
+        error instanceof Error ? error.message : "Failed to add to cart",
+        'error'
+      );
+    } finally {
+      setAddingToCart(false);
+    }
+  };
+
+  const increaseQuantity = () => {
+    if (product && quantity < product.stock) {
+      setQuantity((prev) => prev + 1);
+    }
+  };
+
+  const decreaseQuantity = () => {
+    if (quantity > 1) {
+      setQuantity((prev) => prev - 1);
+    }
+  };
+
+  if (loading) {
+    return (
+      <main className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-kuva-accent" />
+      </main>
+    );
+  }
+
+  if (!product) {
+    return (
+      <main className="min-h-screen flex items-center justify-center">
+        <p className="text-gray-500">Product not found</p>
+      </main>
+    );
+  }
 
   const imageUrl = product.images?.[0];
   const hasSale =
@@ -30,8 +142,8 @@ export default async function ProductDetailPage({
   const displayPrice = hasSale ? product.sale_price_ugx! : product.price_ugx;
 
   return (
-    <main className="min-h-screen bg-kuva-cream pb-36">
-      <header className="sticky top-0 z-40 flex items-center justify-between border-b border-kuva-line/60 bg-kuva-cream/90 px-4 py-3 backdrop-blur-md anim-slide-in-bottom">
+    <main className="min-h-screen pb-36">
+      <header className="sticky top-0 z-40 flex items-center justify-between border-b border-kuva-line/60 bg-white/40 px-4 py-3 backdrop-blur-md anim-slide-in-bottom">
         <Link
           href="/"
           className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-gray-900 shadow-card transition active:scale-95"
@@ -42,15 +154,20 @@ export default async function ProductDetailPage({
         <h1 className="text-sm font-semibold text-gray-900">
           Product details
         </h1>
-        <div className="relative flex h-11 w-11 items-center justify-center">
+        <Link
+          href="/cart"
+          className="relative flex h-11 w-11 items-center justify-center"
+        >
           <ShoppingCart
             className="h-5 w-5 text-gray-800"
             strokeWidth={1.75}
           />
-          <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-kuva-accent px-0.5 text-[10px] font-bold text-white">
-            0
-          </span>
-        </div>
+          {cartCount > 0 && (
+            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-kuva-accent px-0.5 text-[10px] font-bold text-white">
+              {cartCount}
+            </span>
+          )}
+        </Link>
       </header>
 
       <div className="px-4 pt-4 anim-slide-in-bottom anim-delay-100">
@@ -158,17 +275,21 @@ export default async function ProductDetailPage({
           <div className="flex items-center gap-3 rounded-full bg-white px-2 py-1.5 shadow-card">
             <button
               type="button"
-              className="flex h-10 w-10 items-center justify-center rounded-full text-gray-600 transition hover:bg-kuva-surface active:scale-95"
+              onClick={decreaseQuantity}
+              disabled={quantity <= 1}
+              className="flex h-10 w-10 items-center justify-center rounded-full text-gray-600 transition hover:bg-kuva-surface active:scale-95 disabled:opacity-50"
               aria-label="Decrease quantity"
             >
               −
             </button>
             <span className="min-w-[1.5rem] text-center text-sm font-semibold">
-              1
+              {quantity}
             </span>
             <button
               type="button"
-              className="flex h-10 w-10 items-center justify-center rounded-full text-gray-600 transition hover:bg-kuva-surface active:scale-95"
+              onClick={increaseQuantity}
+              disabled={quantity >= product.stock}
+              className="flex h-10 w-10 items-center justify-center rounded-full text-gray-600 transition hover:bg-kuva-surface active:scale-95 disabled:opacity-50"
               aria-label="Increase quantity"
             >
               +
@@ -177,13 +298,21 @@ export default async function ProductDetailPage({
         </div>
       </div>
 
-      <div className="fixed bottom-24 left-0 right-0 mx-auto max-w-md px-4 anim-slide-in-bottom anim-delay-600">
+      <div className="fixed bottom-12 left-0 right-0 mx-auto max-w-md px-4 anim-slide-in-bottom anim-delay-600">
         <button
           type="button"
-          disabled={product.stock === 0}
-          className="flex w-full min-h-[52px] items-center justify-center rounded-full bg-black text-sm font-semibold text-white transition hover:bg-primary-dark active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
+          onClick={handleAddToCart}
+          disabled={product.stock === 0 || addingToCart}
+          className="flex w-full min-h-[52px] items-center justify-center rounded-full bg-black text-sm font-semibold text-white transition hover:bg-primary-dark active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 gap-2"
         >
-          Add to cart
+          {addingToCart ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Adding...
+            </>
+          ) : (
+            "Add to cart"
+          )}
         </button>
       </div>
     </main>

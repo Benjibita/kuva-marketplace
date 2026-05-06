@@ -1,7 +1,6 @@
 import { createClient } from '@/utils/supabase/server'
-import { redirect } from 'next/navigation'
 import { deleteAccount, logout } from '@/app/login/actions'
-import { ArrowLeft, LogOut, Trash2, User } from 'lucide-react'
+import { ArrowLeft, LogOut, Pencil, Trash2, User } from 'lucide-react'
 import Link from 'next/link'
 
 export default async function SettingsPage() {
@@ -9,14 +8,63 @@ export default async function SettingsPage() {
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) {
-    redirect('/login')
+    return (
+      <main className="min-h-screen bg-transparent pb-20">
+        <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100 px-4 py-3 flex items-center anim-slide-in-bottom">
+          <Link href="/" className="mr-4 text-gray-700 hover:text-primary transition">
+            <ArrowLeft className="w-6 h-6" />
+          </Link>
+          <h1 className="text-xl font-bold text-gray-900">Profile</h1>
+        </header>
+
+        <div className="max-w-2xl mx-auto p-4 mt-6">
+          <div className="bg-white/85 backdrop-blur-sm rounded-2xl p-6 shadow-sm border border-gray-100 anim-slide-in-bottom anim-delay-150">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="bg-orange-100 p-4 rounded-full text-primary">
+                <User className="w-8 h-8" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">Create an account</h2>
+                <p className="text-sm text-gray-500">Sign up to unlock profile tools and personalized shopping.</p>
+              </div>
+            </div>
+            <div className="space-y-3">
+              <Link
+                href="/signup"
+                className="flex w-full items-center justify-center rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-white transition hover:bg-primary/90 active:scale-[0.99]"
+              >
+                Create Account
+              </Link>
+              <Link
+                href="/login"
+                className="flex w-full items-center justify-center rounded-xl border border-gray-200 bg-white/90 px-4 py-3 text-sm font-semibold text-gray-800 transition hover:bg-white active:scale-[0.99]"
+              >
+                Sign In
+              </Link>
+              <Link
+                href="/products"
+                className="flex w-full items-center justify-center rounded-xl border border-gray-200 bg-white/90 px-4 py-3 text-sm font-semibold text-gray-800 transition hover:bg-white active:scale-[0.99]"
+              >
+                Continue Browsing
+              </Link>
+            </div>
+          </div>
+        </div>
+      </main>
+    )
   }
 
   const { name, role } = user.user_metadata
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('phone_number')
+    .eq('id', user.id)
+    .maybeSingle()
+  const phoneNumber = profile?.phone_number || user.user_metadata?.phone_number || ''
 
   return (
-    <main className="min-h-screen bg-gray-50 pb-20">
-      <header className="sticky top-0 z-50 bg-white border-b border-gray-100 px-4 py-3 flex items-center anim-slide-in-bottom">
+    <main className="min-h-screen bg-transparent pb-20">
+      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100 px-4 py-3 flex items-center anim-slide-in-bottom">
         <Link href="/" className="mr-4 text-gray-700 hover:text-primary transition">
           <ArrowLeft className="w-6 h-6" />
         </Link>
@@ -24,13 +72,13 @@ export default async function SettingsPage() {
       </header>
 
       <div className="max-w-2xl mx-auto p-4 mt-6">
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-6 anim-slide-in-bottom anim-delay-150">
+        <div className="bg-white/85 backdrop-blur-sm rounded-2xl p-6 shadow-sm border border-gray-100 mb-6 anim-slide-in-bottom anim-delay-150">
           <div className="flex items-center gap-4 mb-6">
             <div className="bg-orange-100 p-4 rounded-full text-primary">
               <User className="w-8 h-8" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-gray-900">{name || 'Kuva User'}</h2>
+              <h2 className="text-xl font-bold text-gray-900">{name || 'KUVA User'}</h2>
               <p className="text-sm text-gray-500 capitalize">{role || 'Buyer'} Account</p>
             </div>
           </div>
@@ -48,14 +96,28 @@ export default async function SettingsPage() {
               <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Account Role</label>
               <p className="text-gray-900 font-medium mt-1 capitalize">{role || 'Buyer'}</p>
             </div>
+            <div>
+              <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Telephone Number</label>
+              <p className="text-gray-900 font-medium mt-1">{phoneNumber || 'Not provided'}</p>
+            </div>
           </div>
         </div>
 
-        <div className="mb-6 rounded-2xl border border-gray-100 bg-white p-6 shadow-sm anim-slide-in-bottom anim-delay-225">
+        <div className="mb-6 rounded-2xl border border-gray-100 bg-white/85 backdrop-blur-sm p-6 shadow-sm anim-slide-in-bottom anim-delay-200">
+          <Link
+            href="/settings/edit"
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white/90 backdrop-blur-sm py-3 px-4 text-sm font-semibold text-gray-800 transition hover:bg-white active:scale-[0.99]"
+          >
+            <Pencil className="h-5 w-5" strokeWidth={2} />
+            Edit Account Details
+          </Link>
+        </div>
+
+        <div className="mb-6 rounded-2xl border border-gray-100 bg-white/85 backdrop-blur-sm p-6 shadow-sm anim-slide-in-bottom anim-delay-225">
           <form action={logout}>
             <button
               type="submit"
-              className="flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white py-3 px-4 text-sm font-semibold text-gray-800 transition hover:bg-gray-50 active:scale-[0.99]"
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white/90 backdrop-blur-sm py-3 px-4 text-sm font-semibold text-gray-800 transition hover:bg-white active:scale-[0.99]"
             >
               <LogOut className="h-5 w-5" strokeWidth={2} />
               Log out
@@ -63,7 +125,7 @@ export default async function SettingsPage() {
           </form>
         </div>
 
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-red-100 anim-slide-in-bottom anim-delay-300">
+        <div className="bg-white/85 backdrop-blur-sm rounded-2xl p-6 shadow-sm border border-red-100 anim-slide-in-bottom anim-delay-300">
           <h3 className="text-lg font-bold text-red-600 mb-2">Danger Zone</h3>
           <p className="text-sm text-gray-500 mb-4">
             Once you delete your account, there is no going back. Please be certain.

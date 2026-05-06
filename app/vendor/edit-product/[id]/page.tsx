@@ -160,7 +160,7 @@ export default function EditProductPage() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+      <div className="flex min-h-screen items-center justify-center bg-transparent">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
@@ -168,7 +168,7 @@ export default function EditProductPage() {
 
   if (unauthorized) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 p-6 text-center">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-transparent p-6 text-center">
         <p className="text-gray-700">You do not have access to edit this product.</p>
         <Link
           href="/"
@@ -182,7 +182,7 @@ export default function EditProductPage() {
 
   if (notFound || !id) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 p-6 text-center">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-transparent p-6 text-center">
         <p className="font-medium text-gray-900">Product not found</p>
         <p className="mt-1 text-sm text-gray-500">
           It may have been removed or you do not own this listing.
@@ -199,7 +199,7 @@ export default function EditProductPage() {
 
   if (isSuccess) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 p-6 text-center">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-transparent p-6 text-center">
         <CheckCircle className="anim-slide-in-bottom mb-4 h-16 w-16 text-green-500" />
         <h2 className="anim-slide-in-bottom anim-delay-100 mb-2 text-2xl font-bold text-gray-900">
           Saved!
@@ -212,8 +212,8 @@ export default function EditProductPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 pb-10">
-      <header className="sticky top-0 z-50 flex items-center gap-3 border-b border-gray-100 bg-white px-4 py-4 anim-slide-in-bottom">
+    <main className="min-h-screen bg-transparent pb-10">
+      <header className="sticky top-0 z-50 flex items-center gap-3 border-b border-gray-100 bg-white/80 backdrop-blur-md px-4 py-4 anim-slide-in-bottom">
         <Link
           href="/vendor/dashboard"
           className="-ml-2 rounded-full p-2 text-gray-600 transition active:bg-gray-100"

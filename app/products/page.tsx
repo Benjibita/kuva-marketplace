@@ -4,17 +4,16 @@ import { ArrowLeft } from "lucide-react";
 export default function ProductsPlaceholderPage() {
   return (
     <main className="min-h-screen px-4 pb-28 pt-4">
-      <header className="mb-8 flex items-center gap-3 anim-slide-in-bottom">
+      <header className="sticky top-0 z-40 flex items-center justify-between border-b border-kuva-line/60 bg-white/40 px-4 py-3 backdrop-blur-md">
         <Link
           href="/"
-          className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-gray-900 shadow-card transition hover:bg-kuva-surface active:scale-95"
-          aria-label="Back to home"
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-gray-900 shadow-card transition active:scale-95"
+          aria-label="Back"
         >
           <ArrowLeft className="h-5 w-5" strokeWidth={1.75} />
         </Link>
-        <h1 className="text-lg font-semibold tracking-tight text-gray-900">
-          Browse
-        </h1>
+        <h1 className="text-lg font-semibold text-gray-900">Discover</h1>
+        <div className="w-11"></div>
       </header>
       <div className="rounded-5xl bg-white p-8 text-center shadow-card anim-slide-in-bottom anim-delay-150">
         <p className="text-sm text-gray-500">

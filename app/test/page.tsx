@@ -14,7 +14,7 @@ export default async function SupabaseTestPage() {
   const isConnected = !error || error.code === 'PGRST116'; // PGRST116 is "no rows returned"
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-8 bg-gray-50">
+    <div className="min-h-screen flex flex-col items-center justify-center p-8 bg-transparent">
       <div className="bg-white p-8 rounded-2xl shadow-lg max-w-md w-full">
         <h1 className="text-2xl font-bold mb-6 text-gray-900 text-center">Supabase Connection Test</h1>
         

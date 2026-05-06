@@ -4,6 +4,34 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
 
+const UGANDA_PHONE_HELPER_TEXT = 'Use a valid Uganda number: 07XXXXXXXX, 2567XXXXXXXX, or +2567XXXXXXXX.'
+
+function normalizeUgandaPhoneNumber(rawPhone: string): string | null {
+  const trimmed = rawPhone.trim()
+  if (!trimmed) return null
+
+  const normalized = trimmed.replace(/[\s()-]/g, '')
+  if (!/^\+?\d+$/.test(normalized)) return null
+
+  if (/^07\d{8}$/.test(normalized)) {
+    return `+256${normalized.slice(1)}`
+  }
+
+  if (/^2567\d{8}$/.test(normalized)) {
+    return `+${normalized}`
+  }
+
+  if (/^\+2567\d{8}$/.test(normalized)) {
+    return normalized
+  }
+
+  if (/^7\d{8}$/.test(normalized)) {
+    return `+256${normalized}`
+  }
+
+  return null
+}
+
 //Login
 export async function login(formData: FormData) {
   const supabase = createClient()
@@ -28,11 +56,18 @@ export async function login(formData: FormData) {
 export async function signup(formData: FormData) {
   const supabase = createClient()
 
+  const nextPath = formData.get('next') as string
   const email = formData.get('email') as string
   const password = formData.get('password') as string
   const role = formData.get('role') as string
   const name = formData.get('name') as string
   const businessName = formData.get('business_name') as string
+  const phoneNumber = formData.get('phone_number') as string
+  const normalizedPhoneNumber = normalizeUgandaPhoneNumber(phoneNumber)
+
+  if (!normalizedPhoneNumber) {
+    return redirect(`/signup?message=${encodeURIComponent(UGANDA_PHONE_HELPER_TEXT)}`)
+  }
 
   if (role === 'vendor' && businessName) {
     const { data: existingProfile } = await supabase
@@ -54,6 +89,7 @@ export async function signup(formData: FormData) {
         role,
         name,
         business_name: businessName,
+        phone_number: normalizedPhoneNumber,
       },
     },
   })
@@ -68,11 +104,87 @@ export async function signup(formData: FormData) {
       id: signUpData.user.id,
       role: role as 'vendor' | 'buyer',
       business_name: businessName || null,
+      phone_number: normalizedPhoneNumber,
     })
   }
 
   revalidatePath('/', 'layout')
+  if (nextPath && nextPath.startsWith('/')) {
+    redirect(nextPath)
+  }
   redirect('/')
+}
+
+export async function updateProfile(formData: FormData) {
+  const supabase = createClient()
+  const fullName = (formData.get('name') as string)?.trim()
+  const businessNameInput = (formData.get('business_name') as string)?.trim()
+  const phoneNumber = formData.get('phone_number') as string
+  const normalizedPhoneNumber = normalizeUgandaPhoneNumber(phoneNumber)
+
+  if (!normalizedPhoneNumber) {
+    return redirect(`/settings/edit?message=${encodeURIComponent(UGANDA_PHONE_HELPER_TEXT)}`)
+  }
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    return redirect('/login')
+  }
+
+  if (!fullName) {
+    return redirect('/settings/edit?message=Full name is required.')
+  }
+
+  const role = user.user_metadata?.role as 'vendor' | 'buyer' | undefined
+  const businessName = role === 'vendor' ? businessNameInput : null
+
+  if (role === 'vendor' && !businessName) {
+    return redirect('/settings/edit?message=Business name is required for vendor accounts.')
+  }
+
+  if (role === 'vendor' && businessName) {
+    const { data: existingProfile } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('business_name', businessName)
+      .neq('id', user.id)
+      .maybeSingle()
+
+    if (existingProfile) {
+      return redirect('/settings/edit?message=Business name already exists. Please choose another.')
+    }
+  }
+
+  const { error: profileError } = await supabase
+    .from('profiles')
+    .update({
+      phone_number: normalizedPhoneNumber,
+      business_name: businessName,
+    })
+    .eq('id', user.id)
+
+  if (profileError) {
+    return redirect('/settings/edit?message=Could not save profile details.')
+  }
+
+  const { error: authError } = await supabase.auth.updateUser({
+    data: {
+      ...user.user_metadata,
+      name: fullName,
+      business_name: businessName,
+      phone_number: normalizedPhoneNumber,
+    },
+  })
+
+  if (authError) {
+    return redirect('/settings/edit?message=Profile saved, but metadata sync failed.')
+  }
+
+  revalidatePath('/settings')
+  revalidatePath('/settings/edit')
+  revalidatePath('/', 'layout')
+  revalidatePath('/vendor/dashboard')
+  redirect('/settings/edit?message=Profile updated successfully.')
 }
 
 export async function deleteAccount() {

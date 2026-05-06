@@ -89,15 +89,15 @@ export function ProductCard({ product }: ProductCardProps) {
           <p className="mt-1 truncate text-[11px] font-normal leading-tight text-gray-500">
             {vendorName}
           </p>
-          <div className="mt-1.5 flex items-end gap-2">
-            <p className="text-base font-bold text-gray-900">
-              UGX {displayPrice.toLocaleString()}
-            </p>
+          <div className="mt-1.5 flex flex-col gap-0.5">
             {hasSale && (
-              <p className="text-[11px] text-gray-400 line-through">
+              <p className="whitespace-nowrap text-[11px] text-gray-400 line-through">
                 UGX {product.price_ugx.toLocaleString()}
               </p>
             )}
+            <p className="whitespace-nowrap text-base font-bold text-gray-900">
+              UGX {displayPrice.toLocaleString()}
+            </p>
           </div>
         </div>
         <span

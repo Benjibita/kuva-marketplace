@@ -31,7 +31,7 @@ export function BottomNav() {
 
   return (
     <nav
-      className="fixed bottom-5 left-1/2 z-50 flex -translate-x-1/2 items-center gap-0.5 rounded-full bg-black px-1.5 py-1.5 shadow-nav"
+      className="fixed bottom-5 left-1/2 z-50 flex -translate-x-1/2 items-center gap-0.5 rounded-full bg-black/25 px-1.5 py-1.5 shadow-nav backdrop-blur-md"
       aria-label="Main navigation"
     >
       {items.map(({ href, label, icon: Icon, match }) => {
@@ -44,7 +44,7 @@ export function BottomNav() {
             aria-label={label}
             className={`kuva-nav-item group relative flex min-h-[44px] items-center justify-center overflow-hidden rounded-full py-2 text-sm font-medium transition-[background-color,color,transform,padding,min-width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-[0.96] ${
               active
-                ? "min-w-[44px] bg-white px-3 text-black"
+                ? "min-w-[44px] bg-black px-3 text-white font-light shadow-nav-hover"
                 : "min-w-[44px] px-2.5 text-white/85 hover:bg-white/12"
             } `}
           >

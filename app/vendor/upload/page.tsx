@@ -198,7 +198,7 @@ export default function VendorUpload() {
   // ─── Success Screen ───────────────────────────────────────────────────
   if (isSuccess) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 p-6 text-center">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-transparent p-6 text-center">
         <div className="anim-slide-in-bottom mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-green-50">
           <CheckCircle className="w-14 h-14 text-green-500" />
         </div>
@@ -206,7 +206,7 @@ export default function VendorUpload() {
           Product Listed!
         </h2>
         <p className="anim-slide-in-bottom anim-delay-150 mb-8 text-gray-500">
-          Your product is now live on the Kuva marketplace.
+          Your product is now live on the KUVA marketplace.
         </p>
         <button
           onClick={handleReset}
@@ -216,7 +216,7 @@ export default function VendorUpload() {
         </button>
         <Link
           href="/vendor/dashboard"
-          className="anim-slide-in-bottom anim-delay-250 block w-full rounded-xl border border-gray-200 bg-white py-3.5 text-center font-bold text-gray-700 transition active:scale-95"
+          className="anim-slide-in-bottom anim-delay-250 block w-full rounded-xl border border-gray-200 bg-white/90 backdrop-blur-sm py-3.5 text-center font-bold text-gray-700 transition active:scale-95"
         >
           Back to Dashboard
         </Link>
@@ -226,8 +226,8 @@ export default function VendorUpload() {
 
   // ─── Upload Form ──────────────────────────────────────────────────────
   return (
-    <main className="min-h-screen bg-gray-50 pb-12">
-      <header className="sticky top-0 z-50 flex items-center gap-3 border-b border-gray-100 bg-white px-4 py-4 anim-slide-in-bottom">
+    <main className="min-h-screen bg-transparent pb-12">
+      <header className="sticky top-0 z-50 flex items-center gap-3 border-b border-gray-100 bg-white/80 backdrop-blur-md px-4 py-4 anim-slide-in-bottom">
         <Link
           href="/vendor/dashboard"
           className="p-2 -ml-2 text-gray-600 active:bg-gray-100 rounded-full transition"
@@ -262,7 +262,7 @@ export default function VendorUpload() {
         )}
 
         {/* ── Image Upload Area ── */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 space-y-3">
+        <div className="bg-white/85 backdrop-blur-sm rounded-2xl border border-gray-100 shadow-sm p-4 space-y-3">
           <label className="block text-sm font-semibold text-gray-800">
             Product Photos{" "}
             <span className="text-gray-400 font-normal">
@@ -336,7 +336,7 @@ export default function VendorUpload() {
         </div>
 
         {/* ── Text Fields ── */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 space-y-4">
+        <div className="bg-white/85 backdrop-blur-sm rounded-2xl border border-gray-100 shadow-sm p-4 space-y-4">
           {/* Title */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">

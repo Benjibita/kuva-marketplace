@@ -29,8 +29,8 @@ export default async function VendorDashboard({
     typeof searchParams.error === 'string' ? searchParams.error : undefined
 
   return (
-    <main className="min-h-screen bg-gray-50 pb-20">
-      <header className="sticky top-0 z-50 flex items-center justify-between border-b border-gray-100 bg-white px-4 py-4 anim-slide-in-bottom">
+    <main className="min-h-screen bg-transparent pb-20">
+      <header className="sticky top-0 z-50 flex items-center justify-between border-b border-gray-100 bg-white/80 backdrop-blur-md px-4 py-4 anim-slide-in-bottom">
         <div className="flex items-center gap-3">
           <Link href="/" className="text-gray-600 hover:text-primary transition">
             <ArrowLeft className="w-6 h-6" />
@@ -54,7 +54,7 @@ export default async function VendorDashboard({
           </div>
         )}
 
-        <div className="flex items-center justify-between rounded-2xl border border-gray-100 bg-white p-6 shadow-sm anim-slide-in-bottom anim-delay-100">
+        <div className="flex items-center justify-between rounded-2xl border border-gray-100 bg-white/85 backdrop-blur-sm p-6 shadow-sm anim-slide-in-bottom anim-delay-100">
           <div>
             <h2 className="text-xl font-bold text-gray-900">{user.user_metadata.business_name || 'My Shop'}</h2>
             <p className="text-sm text-gray-500">{user.user_metadata.name}</p>
@@ -81,7 +81,7 @@ export default async function VendorDashboard({
             {products.map((product, i) => (
               <div
                 key={product.id}
-                className="flex items-center justify-between rounded-xl border border-gray-100 bg-white p-4 shadow-sm anim-slide-in-bottom"
+                className="flex items-center justify-between rounded-xl border border-gray-100 bg-white/85 backdrop-blur-sm p-4 shadow-sm anim-slide-in-bottom"
                 style={{ animationDelay: `${250 + Math.min(i, 12) * 40}ms` }}
               >
                 <div>
@@ -105,7 +105,7 @@ export default async function VendorDashboard({
             ))}
           </div>
         ) : (
-          <div className="rounded-2xl border-2 border-dashed border-gray-200 bg-white p-8 text-center anim-slide-in-bottom anim-delay-250">
+          <div className="rounded-2xl border-2 border-dashed border-gray-200 bg-white/85 backdrop-blur-sm p-8 text-center anim-slide-in-bottom anim-delay-250">
             <Package className="w-12 h-12 text-gray-300 mx-auto mb-3" />
             <p className="text-gray-500 mb-4">You haven't added any products yet.</p>
             <Link 

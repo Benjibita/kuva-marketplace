@@ -19,8 +19,8 @@ export default function LoginPage({
 
       <form className="flex flex-1 w-full flex-col justify-center gap-2 text-foreground">
         <div className="mb-6 flex flex-col items-center gap-2 text-center anim-slide-in-bottom anim-delay-100">
-          <h1 className="text-3xl font-bold text-primary">Welcome Back</h1>
-          <p className="text-gray-500 text-sm">Sign in to your Kuva account</p>
+          <h1 className="text-3xl font-bold text-primary">Welcome to KUVA</h1>
+          <p className="text-gray-500 text-sm">Sign in to your KUVA account</p>
         </div>
 
         <label className="anim-slide-in-bottom anim-delay-150 text-sm font-medium" htmlFor="email">
