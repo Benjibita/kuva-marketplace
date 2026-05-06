@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { Trash2, Plus, Minus, Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
@@ -52,7 +52,6 @@ export default function CartPage() {
   const [checkingOut, setCheckingOut] = useState(false);
   const [isGuestCart, setIsGuestCart] = useState(false);
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { addNotification } = useNotification();
   const supabase = createClient();
   const [hasResumedCheckout, setHasResumedCheckout] = useState(false);
@@ -324,7 +323,11 @@ export default function CartPage() {
   useEffect(() => {
     async function resumeCheckoutIfNeeded() {
       if (loading || hasResumedCheckout || cartItems.length === 0) return;
-      if (searchParams.get('resumeCheckout') !== '1') return;
+      const resumeCheckout =
+        typeof window !== 'undefined'
+          ? new URLSearchParams(window.location.search).get('resumeCheckout')
+          : null;
+      if (resumeCheckout !== '1') return;
 
       const {
         data: { user },
@@ -338,7 +341,7 @@ export default function CartPage() {
     }
 
     void resumeCheckoutIfNeeded();
-  }, [loading, hasResumedCheckout, cartItems.length, searchParams, supabase, addNotification]);
+  }, [loading, hasResumedCheckout, cartItems.length, supabase, addNotification]);
 
   if (loading) {
     return (
