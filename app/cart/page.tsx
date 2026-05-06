@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Trash2, Plus, Minus, Loader2 } from 'lucide-react';
+import { Trash2, Plus, Minus, Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { useNotification } from '@/app/context/NotificationContext';
@@ -15,11 +15,13 @@ import {
   clearCart,
 } from '@/app/actions/cart';
 import {
+  addGuestCartItem,
   clearGuestCart,
   getGuestCartItems,
   removeGuestCartItem,
   updateGuestCartItemQuantity,
 } from '@/utils/guestCart';
+import { PREDEFINED_SIZES } from '@/utils/productSizes';
 
 interface CartProduct {
   id: string;
@@ -27,6 +29,10 @@ interface CartProduct {
   price_ugx: number;
   is_on_sale: boolean;
   sale_price_ugx: number | null;
+  use_size_variants?: boolean;
+  use_size_specific_prices?: boolean;
+  size_inventory?: Record<string, number>;
+  size_prices?: Record<string, number>;
   images: string[];
   stock: number;
 }
@@ -35,6 +41,7 @@ interface CartItem {
   id: string;
   quantity: number;
   product_id: string;
+  selected_size?: string | null;
   products: CartProduct;
 }
 
@@ -62,7 +69,7 @@ export default function CartPage() {
           if (guestItems.length > 0) {
             for (const item of guestItems) {
               try {
-                await addToCart(item.product_id, item.quantity);
+                await addToCart(item.product_id, item.quantity, item.selected_size || null);
               } catch {
                 // Best effort migration from guest cart to account cart
               }
@@ -86,7 +93,7 @@ export default function CartPage() {
         const productIds = guestItems.map((item) => item.product_id);
         const { data: products } = await supabase
           .from('products')
-          .select('id, title, price_ugx, is_on_sale, sale_price_ugx, images, stock')
+          .select('id, title, price_ugx, is_on_sale, sale_price_ugx, use_size_variants, use_size_specific_prices, size_inventory, size_prices, images, stock')
           .in('id', productIds)
           .is('deleted_at', null);
 
@@ -96,9 +103,10 @@ export default function CartPage() {
             const product = productMap.get(item.product_id);
             if (!product) return null;
             return {
-              id: `guest-${item.product_id}`,
-              quantity: Math.min(item.quantity, product.stock),
+              id: `guest-${item.product_id}-${item.selected_size || 'NO_SIZE'}`,
+              quantity: Math.min(item.quantity, Number(item.selected_size ? (product.size_inventory?.[item.selected_size] || 0) : product.stock)),
               product_id: item.product_id,
+              selected_size: item.selected_size || null,
               products: product,
             } as CartItem;
           })
@@ -123,7 +131,7 @@ export default function CartPage() {
       if (!item) return;
 
       if (isGuestCart) {
-        removeGuestCartItem(item.product_id);
+        removeGuestCartItem(item.product_id, item.selected_size || null);
       } else {
         await removeFromCart(cartItemId);
       }
@@ -158,7 +166,7 @@ export default function CartPage() {
       if (!item) return;
 
       if (isGuestCart) {
-        updateGuestCartItemQuantity(item.product_id, newQuantity);
+        updateGuestCartItemQuantity(item.product_id, newQuantity, item.selected_size || null);
       } else {
         await updateCartItemQuantity(cartItemId, newQuantity);
       }
@@ -183,12 +191,21 @@ export default function CartPage() {
 
   const calculateItemTotal = (item: CartItem) => {
     const product = item.products;
+    const sizePrice =
+      item.selected_size && product.use_size_specific_prices
+        ? Number(product.size_prices?.[item.selected_size] || 0)
+        : null;
     const hasSale =
       product.is_on_sale &&
       product.sale_price_ugx &&
       product.sale_price_ugx > 0 &&
       product.sale_price_ugx < product.price_ugx;
-    const unitPrice = hasSale ? product.sale_price_ugx! : product.price_ugx;
+    const unitPrice =
+      sizePrice && sizePrice > 0
+        ? sizePrice
+        : hasSale
+          ? product.sale_price_ugx!
+          : product.price_ugx;
     return unitPrice * item.quantity;
   };
 
@@ -207,6 +224,48 @@ export default function CartPage() {
   const totalSavings = cartItems.reduce((sum, item) => sum + calculateSavings(item), 0);
   const shippingCost = cartItems.length > 0 ? 5000 : 0; // Mock shipping
   const total = subtotal + shippingCost;
+
+  const handleSizeChange = async (cartItemId: string, selectedSize: string) => {
+    const currentItem = cartItems.find((item) => item.id === cartItemId);
+    if (!currentItem) return;
+
+    const selected = selectedSize || null;
+    const inventory = currentItem.products.size_inventory || {};
+    const available = Number(inventory[selected || ''] || 0);
+    if (selected && available < currentItem.quantity) {
+      addNotification(`Only ${available} item(s) left for size ${selected}`, 'error');
+      return;
+    }
+
+    if (isGuestCart) {
+      removeGuestCartItem(currentItem.product_id, currentItem.selected_size || null);
+      addGuestCartItem(currentItem.product_id, currentItem.quantity, selected);
+      setCartItems((prev) =>
+        prev.map((item) =>
+          item.id === cartItemId
+            ? { ...item, selected_size: selected, id: `guest-${item.product_id}-${selected || 'NO_SIZE'}` }
+            : item
+        )
+      );
+      return;
+    }
+
+    try {
+      setUpdatingIds((prev) => new Set(prev).add(cartItemId));
+      await removeFromCart(cartItemId);
+      await addToCart(currentItem.product_id, currentItem.quantity, selected);
+      const refreshed = await getCartItems();
+      setCartItems((refreshed || []) as unknown as CartItem[]);
+    } catch (error) {
+      addNotification(error instanceof Error ? error.message : 'Failed to update size', 'error');
+    } finally {
+      setUpdatingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(cartItemId);
+        return next;
+      });
+    }
+  };
 
   const handleCheckout = async () => {
     if (cartItems.length === 0) {
@@ -291,16 +350,8 @@ export default function CartPage() {
 
   return (
     <main className="min-h-screen pb-40">
-      <header className="sticky top-0 z-40 flex items-center justify-between border-b border-kuva-line/60 bg-white/40 px-4 py-3 backdrop-blur-md">
-        <Link
-          href="/"
-          className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-gray-900 shadow-card transition active:scale-95"
-          aria-label="Back"
-        >
-          <ArrowLeft className="h-5 w-5" strokeWidth={1.75} />
-        </Link>
+      <header className="sticky top-0 z-40 flex items-center justify-center border-b border-kuva-line/60 bg-white/40 px-4 py-3 backdrop-blur-md">
         <h1 className="text-lg font-semibold text-gray-900">Cart</h1>
-        <div className="w-11"></div>
       </header>
 
       {cartItems.length === 0 ? (
@@ -331,6 +382,15 @@ export default function CartPage() {
                 const unitPrice = hasSale
                   ? product.sale_price_ugx!
                   : product.price_ugx;
+                const sizePrice =
+                  item.selected_size && product.use_size_specific_prices
+                    ? Number(product.size_prices?.[item.selected_size] || 0)
+                    : null;
+                const displayPrice = sizePrice && sizePrice > 0 ? sizePrice : unitPrice;
+                const sizeStock =
+                  item.selected_size && product.use_size_variants
+                    ? Number(product.size_inventory?.[item.selected_size] || 0)
+                    : product.stock;
 
                 return (
                   <div
@@ -368,7 +428,7 @@ export default function CartPage() {
                         </Link>
                         <div className="mt-1 flex items-center gap-2">
                           <p className="text-sm font-semibold text-gray-900">
-                            UGX {unitPrice.toLocaleString()}
+                            UGX {displayPrice.toLocaleString()}
                           </p>
                           {hasSale && (
                             <p className="text-xs text-gray-500 line-through">
@@ -378,37 +438,53 @@ export default function CartPage() {
                         </div>
                       </div>
 
-                      {/* Quantity Controls */}
+                      {/* Quantity + Size Controls */}
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 rounded-full bg-kuva-surface px-2 py-1">
-                          <button
-                            onClick={() =>
-                              handleUpdateQuantity(item.id, item.quantity - 1)
-                            }
-                            disabled={
-                              updatingIds.has(item.id) || item.quantity <= 1
-                            }
-                            className="flex h-6 w-6 items-center justify-center text-gray-600 transition hover:bg-white active:scale-95 disabled:opacity-50"
-                            aria-label="Decrease quantity"
-                          >
-                            <Minus className="h-3 w-3" strokeWidth={2} />
-                          </button>
-                          <span className="min-w-[1.25rem] text-center text-xs font-semibold">
-                            {item.quantity}
-                          </span>
-                          <button
-                            onClick={() =>
-                              handleUpdateQuantity(item.id, item.quantity + 1)
-                            }
-                            disabled={
-                              updatingIds.has(item.id) ||
-                              item.quantity >= product.stock
-                            }
-                            className="flex h-6 w-6 items-center justify-center text-gray-600 transition hover:bg-white active:scale-95 disabled:opacity-50"
-                            aria-label="Increase quantity"
-                          >
-                            <Plus className="h-3 w-3" strokeWidth={2} />
-                          </button>
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 rounded-full bg-kuva-surface px-2 py-1">
+                            <button
+                              onClick={() =>
+                                handleUpdateQuantity(item.id, item.quantity - 1)
+                              }
+                              disabled={
+                                updatingIds.has(item.id) || item.quantity <= 1
+                              }
+                              className="flex h-6 w-6 items-center justify-center text-gray-600 transition hover:bg-white active:scale-95 disabled:opacity-50"
+                              aria-label="Decrease quantity"
+                            >
+                              <Minus className="h-3 w-3" strokeWidth={2} />
+                            </button>
+                            <span className="min-w-[1.25rem] text-center text-xs font-semibold">
+                              {item.quantity}
+                            </span>
+                            <button
+                              onClick={() =>
+                                handleUpdateQuantity(item.id, item.quantity + 1)
+                              }
+                              disabled={
+                                updatingIds.has(item.id) ||
+                                item.quantity >= sizeStock
+                              }
+                              className="flex h-6 w-6 items-center justify-center text-gray-600 transition hover:bg-white active:scale-95 disabled:opacity-50"
+                              aria-label="Increase quantity"
+                            >
+                              <Plus className="h-3 w-3" strokeWidth={2} />
+                            </button>
+                          </div>
+
+                          {product.use_size_variants && (
+                            <select
+                              value={item.selected_size || ''}
+                              onChange={(e) => handleSizeChange(item.id, e.target.value)}
+                              className="rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs text-gray-700"
+                            >
+                              {PREDEFINED_SIZES.filter((size) => Number(product.size_inventory?.[size] || 0) > 0).map((size) => (
+                                <option key={size} value={size}>
+                                  {size}
+                                </option>
+                              ))}
+                            </select>
+                          )}
                         </div>
 
                         <button

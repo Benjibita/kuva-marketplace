@@ -3,16 +3,22 @@
 import { usePathname } from "next/navigation";
 import { BottomNav } from "@/components/BottomNav";
 
-const HIDE_NAV_PREFIXES = ["/vendor", "/login", "/signup", "/test", "/products/"];
+const ROOT_NAV_PATHS = new Set([
+  "/",
+  "/products",
+  "/cart",
+  "/settings",
+  "/vendor/dashboard",
+]);
 
 export function ShopChrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const hideNav = HIDE_NAV_PREFIXES.some((p) => pathname.startsWith(p));
+  const showNav = ROOT_NAV_PATHS.has(pathname);
 
   return (
     <>
       {children}
-      {!hideNav && <BottomNav />}
+      {showNav && <BottomNav />}
     </>
   );
 }

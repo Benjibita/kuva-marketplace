@@ -1,6 +1,6 @@
 import { createClient } from '@/utils/supabase/server'
 import { deleteAccount, logout } from '@/app/login/actions'
-import { ArrowLeft, LogOut, Pencil, Trash2, User } from 'lucide-react'
+import { LogOut, Pencil, Trash2, User } from 'lucide-react'
 import Link from 'next/link'
 
 export default async function SettingsPage() {
@@ -10,10 +10,7 @@ export default async function SettingsPage() {
   if (!user) {
     return (
       <main className="min-h-screen bg-transparent pb-20">
-        <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100 px-4 py-3 flex items-center anim-slide-in-bottom">
-          <Link href="/" className="mr-4 text-gray-700 hover:text-primary transition">
-            <ArrowLeft className="w-6 h-6" />
-          </Link>
+        <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100 px-4 py-3 flex items-center justify-center anim-slide-in-bottom">
           <h1 className="text-xl font-bold text-gray-900">Profile</h1>
         </header>
 
@@ -64,10 +61,7 @@ export default async function SettingsPage() {
 
   return (
     <main className="min-h-screen bg-transparent pb-20">
-      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100 px-4 py-3 flex items-center anim-slide-in-bottom">
-        <Link href="/" className="mr-4 text-gray-700 hover:text-primary transition">
-          <ArrowLeft className="w-6 h-6" />
-        </Link>
+      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100 px-4 py-3 flex items-center justify-center anim-slide-in-bottom">
         <h1 className="text-xl font-bold text-gray-900">Account Settings</h1>
       </header>
 

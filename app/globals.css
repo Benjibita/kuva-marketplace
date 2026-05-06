@@ -17,10 +17,58 @@ html {
 
 body {
   color: var(--foreground);
-  background: linear-gradient(180deg, #f0eeeb 30%, #e8dff5 100%);
+  background:
+    radial-gradient(1200px 700px at 10% -10%, rgba(255, 255, 255, 0.78), transparent 55%),
+    radial-gradient(900px 560px at 90% 10%, rgba(207, 201, 233, 0.58), transparent 60%),
+    radial-gradient(800px 520px at 50% 100%, rgba(255, 218, 224, 0.35), transparent 62%),
+    linear-gradient(180deg, #f4f1ee 0%, #ece4f7 52%, #e7deef 100%);
   background-attachment: fixed;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
+  position: relative;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  opacity: 0.3;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.12) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.12) 1px, transparent 1px);
+  background-size: 42px 42px;
+  mask-image: radial-gradient(circle at 50% 35%, black 28%, transparent 100%);
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  background:
+    radial-gradient(500px 300px at 20% 22%, rgba(255, 255, 255, 0.32), transparent 72%),
+    radial-gradient(420px 260px at 82% 65%, rgba(255, 255, 255, 0.26), transparent 75%);
+}
+
+/* App-wide premium glass treatment */
+.premium-glass :where([class*="bg-white"]) {
+  background-color: rgba(255, 255, 255, 0.42) !important;
+  backdrop-filter: blur(14px) saturate(125%);
+  -webkit-backdrop-filter: blur(14px) saturate(125%);
+}
+
+.premium-glass :where([class*="border-gray-"], [class*="border-kuva-line"], [class*="border-white/"]) {
+  border-color: rgba(255, 255, 255, 0.55) !important;
+}
+
+.premium-glass :where([class*="shadow-card"], [class*="shadow-sm"], [class*="shadow-md"], [class*="shadow-lg"]) {
+  box-shadow:
+    0 8px 24px rgba(15, 23, 42, 0.08),
+    0 1px 0 rgba(255, 255, 255, 0.6) inset;
 }
 
 .scrollbar-hide {

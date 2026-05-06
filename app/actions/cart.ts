@@ -3,7 +3,7 @@
 import { createClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
 
-export async function addToCart(productId: string, quantity: number) {
+export async function addToCart(productId: string, quantity: number, selectedSize?: string | null) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -17,7 +17,7 @@ export async function addToCart(productId: string, quantity: number) {
   // Check if product exists and is not soft deleted
   const { data: product, error: productError } = await supabase
     .from('products')
-    .select('id, stock, title')
+    .select('id, stock, title, use_size_variants, size_inventory')
     .eq('id', productId)
     .is('deleted_at', null)
     .single();
@@ -26,18 +26,34 @@ export async function addToCart(productId: string, quantity: number) {
     throw new Error('Product not found');
   }
 
-  // Check stock availability
-  if (product.stock < quantity) {
+  const normalizedSize = selectedSize || null;
+  const sizeInventory = (product as any).size_inventory || {};
+  const isSized = Boolean((product as any).use_size_variants);
+
+  if (isSized) {
+    if (!normalizedSize) {
+      throw new Error('Please select a size');
+    }
+    const available = Number(sizeInventory[normalizedSize] || 0);
+    if (available < quantity) {
+      throw new Error(`Only ${available} item(s) left for size ${normalizedSize}`);
+    }
+  } else if (product.stock < quantity) {
     throw new Error('Insufficient stock');
   }
 
   // Check if item already in cart
-  const { data: existingItem } = await supabase
+  let existingItemQuery = supabase
     .from('cart_items')
     .select('id, quantity')
     .eq('user_id', user.id)
-    .eq('product_id', productId)
-    .single();
+    .eq('product_id', productId);
+
+  existingItemQuery = normalizedSize
+    ? existingItemQuery.eq('selected_size', normalizedSize)
+    : existingItemQuery.is('selected_size', null);
+
+  const { data: existingItem } = await existingItemQuery.single();
 
   if (existingItem) {
     // Update quantity if item exists
@@ -54,6 +70,7 @@ export async function addToCart(productId: string, quantity: number) {
     const { error: insertError } = await supabase.from('cart_items').insert({
       user_id: user.id,
       product_id: productId,
+      selected_size: normalizedSize,
       quantity,
     });
 
@@ -162,12 +179,17 @@ export async function getCartItems() {
       id,
       quantity,
       product_id,
+      selected_size,
       products (
         id,
         title,
         price_ugx,
         is_on_sale,
         sale_price_ugx,
+        use_size_variants,
+        use_size_specific_prices,
+        size_inventory,
+        size_prices,
         images,
         stock
       )

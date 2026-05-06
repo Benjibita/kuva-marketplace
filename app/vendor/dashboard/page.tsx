@@ -1,7 +1,8 @@
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Plus, Package, Edit3, Settings, ArrowLeft } from 'lucide-react'
+import Image from 'next/image'
+import { Plus, Package, Edit3 } from 'lucide-react'
 import { SoftDeleteProductButton } from '@/components/SoftDeleteProductButton'
 
 export default async function VendorDashboard({
@@ -30,16 +31,8 @@ export default async function VendorDashboard({
 
   return (
     <main className="min-h-screen bg-transparent pb-20">
-      <header className="sticky top-0 z-50 flex items-center justify-between border-b border-gray-100 bg-white/80 backdrop-blur-md px-4 py-4 anim-slide-in-bottom">
-        <div className="flex items-center gap-3">
-          <Link href="/" className="text-gray-600 hover:text-primary transition">
-            <ArrowLeft className="w-6 h-6" />
-          </Link>
-          <h1 className="text-lg font-bold text-gray-900">Vendor Dashboard</h1>
-        </div>
-        <Link href="/settings" className="text-gray-600 hover:text-primary">
-          <Settings className="w-6 h-6" />
-        </Link>
+      <header className="sticky top-0 z-50 flex items-center justify-center border-b border-gray-100 bg-white/80 backdrop-blur-md px-4 py-4 anim-slide-in-bottom">
+        <h1 className="text-lg font-bold text-gray-900">Vendor Dashboard</h1>
       </header>
 
       <div className="space-y-6 p-4">
@@ -77,29 +70,49 @@ export default async function VendorDashboard({
         </div>
 
         {products && products.length > 0 ? (
-          <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
             {products.map((product, i) => (
               <div
                 key={product.id}
-                className="flex items-center justify-between rounded-xl border border-gray-100 bg-white/85 backdrop-blur-sm p-4 shadow-sm anim-slide-in-bottom"
+                className="overflow-hidden rounded-4xl border border-gray-100 bg-white/85 backdrop-blur-sm shadow-sm anim-slide-in-bottom"
                 style={{ animationDelay: `${250 + Math.min(i, 12) * 40}ms` }}
               >
-                <div>
-                  <h4 className="font-medium text-gray-900">{product.title}</h4>
-                  <div className="text-sm text-gray-500 flex gap-4 mt-1">
-                    <span>UGX {product.price_ugx.toLocaleString()}</span>
-                    <span>Stock: {product.stock}</span>
+                <div className="relative aspect-[3/4] bg-kuva-surface">
+                  {product.images?.[0] ? (
+                    <Image
+                      src={product.images[0]}
+                      alt={product.title}
+                      fill
+                      sizes="(max-width: 768px) 50vw, 33vw"
+                      className="object-cover"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center text-xs text-gray-400">
+                      No image
+                    </div>
+                  )}
+                  <div className="absolute right-3 top-3 flex items-center gap-2">
+                    <Link
+                      href={`/vendor/edit-product/${product.id}`}
+                      className="rounded-full bg-white/90 p-2 text-primary shadow-sm backdrop-blur-sm transition hover:bg-white"
+                      aria-label="Edit product"
+                    >
+                      <Edit3 className="h-4 w-4" />
+                    </Link>
+                    <SoftDeleteProductButton productId={product.id} compact />
                   </div>
                 </div>
-                <div className="flex shrink-0 items-center gap-2">
-                  <Link
-                    href={`/vendor/edit-product/${product.id}`}
-                    className="rounded-full bg-orange-50 p-2 text-primary transition hover:bg-orange-100"
-                    aria-label="Edit product"
-                  >
-                    <Edit3 className="h-5 w-5" />
-                  </Link>
-                  <SoftDeleteProductButton productId={product.id} compact />
+
+                <div className="p-3.5">
+                  <h4 className="line-clamp-2 text-sm font-semibold leading-snug tracking-tight text-gray-900">
+                    {product.title}
+                  </h4>
+                  <div className="mt-1.5 flex items-center justify-between text-xs text-gray-500">
+                    <span>Stock: {product.stock}</span>
+                    <span className="font-semibold text-gray-900">
+                      UGX {product.price_ugx.toLocaleString()}
+                    </span>
+                  </div>
                 </div>
               </div>
             ))}

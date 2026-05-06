@@ -24,7 +24,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${plusJakartaSans.className} antialiased text-gray-900 min-h-screen`}
+        className={`${plusJakartaSans.className} premium-glass antialiased text-gray-900 min-h-screen`}
       >
         <NotificationProvider>
           <div className="w-full h-full min-h-screen shadow-nav relative pb-28 flex justify-center">

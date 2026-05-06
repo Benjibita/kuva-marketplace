@@ -13,6 +13,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
+import { PREDEFINED_SIZES } from "@/utils/productSizes";
 
 const CATEGORIES = [
   { value: "fashion", label: "Fashion & Apparel" },
@@ -31,6 +32,9 @@ interface ImageFile {
   preview: string;
 }
 
+type SizeInventoryMap = Record<string, string>;
+type SizePriceMap = Record<string, string>;
+
 export default function VendorUpload() {
   const router = useRouter();
   const supabase = createClient();
@@ -42,6 +46,10 @@ export default function VendorUpload() {
   const [stock, setStock] = useState("");
   const [category, setCategory] = useState("");
   const [description, setDescription] = useState("");
+  const [useSizes, setUseSizes] = useState(false);
+  const [useSamePriceForAllSizes, setUseSamePriceForAllSizes] = useState(true);
+  const [sizeInventory, setSizeInventory] = useState<SizeInventoryMap>({});
+  const [sizePrices, setSizePrices] = useState<SizePriceMap>({});
   const [isOnSale, setIsOnSale] = useState(false);
   const [salePrice, setSalePrice] = useState("");
   const [images, setImages] = useState<ImageFile[]>([]);
@@ -118,6 +126,32 @@ export default function VendorUpload() {
         }
       }
 
+      const parsedSizeInventory: Record<string, number> = {};
+      const parsedSizePrices: Record<string, number> = {};
+      let computedStock = parseInt(stock, 10) || 0;
+
+      if (useSizes) {
+        computedStock = 0;
+        for (const size of PREDEFINED_SIZES) {
+          const qty = parseInt(sizeInventory[size] || "0", 10);
+          if (qty > 0) {
+            parsedSizeInventory[size] = qty;
+            computedStock += qty;
+          }
+
+          if (!useSamePriceForAllSizes) {
+            const sizePrice = parseFloat(sizePrices[size] || "");
+            if (!Number.isNaN(sizePrice) && sizePrice > 0) {
+              parsedSizePrices[size] = sizePrice;
+            }
+          }
+        }
+
+        if (computedStock <= 0) {
+          throw new Error("Enter stock for at least one size.");
+        }
+      }
+
       // 2. Upload images to Supabase Storage
       const uploadedUrls: string[] = [];
 
@@ -158,8 +192,12 @@ export default function VendorUpload() {
         title: title.trim(),
         description: description.trim() || null,
         price_ugx: basePrice,
-        stock: parseInt(stock, 10),
+        stock: computedStock,
         category: category || null,
+        use_size_variants: useSizes,
+        use_size_specific_prices: useSizes && !useSamePriceForAllSizes,
+        size_inventory: useSizes ? parsedSizeInventory : {},
+        size_prices: useSizes && !useSamePriceForAllSizes ? parsedSizePrices : {},
         is_on_sale: isOnSale,
         sale_price_ugx: isOnSale ? parsedSalePrice : null,
         images: uploadedUrls,
@@ -189,6 +227,10 @@ export default function VendorUpload() {
     setStock("");
     setCategory("");
     setDescription("");
+    setUseSizes(false);
+    setUseSamePriceForAllSizes(true);
+    setSizeInventory({});
+    setSizePrices({});
     setIsOnSale(false);
     setSalePrice("");
     setError(null);
@@ -380,9 +422,72 @@ export default function VendorUpload() {
                 value={stock}
                 onChange={(e) => setStock(e.target.value)}
                 placeholder="1"
+                disabled={useSizes}
                 className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/40 focus:bg-white transition"
               />
             </div>
+          </div>
+
+          <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 space-y-3">
+            <label className="flex items-center justify-between gap-3 text-sm font-medium text-gray-700">
+              <span>Add size options (XS to XXL)</span>
+              <input
+                type="checkbox"
+                checked={useSizes}
+                onChange={(e) => setUseSizes(e.target.checked)}
+                className="h-4 w-4 accent-black"
+              />
+            </label>
+
+            {useSizes && (
+              <>
+                <label className="flex items-center justify-between gap-3 text-sm font-medium text-gray-700">
+                  <span>Use same price for all sizes</span>
+                  <input
+                    type="checkbox"
+                    checked={useSamePriceForAllSizes}
+                    onChange={(e) => setUseSamePriceForAllSizes(e.target.checked)}
+                    className="h-4 w-4 accent-black"
+                  />
+                </label>
+
+                <div className="grid grid-cols-1 gap-2">
+                  {PREDEFINED_SIZES.map((size) => (
+                    <div key={size} className="grid grid-cols-3 gap-2 items-center">
+                      <span className="text-xs font-semibold text-gray-700">{size}</span>
+                      <input
+                        type="number"
+                        min="0"
+                        placeholder="Qty"
+                        value={sizeInventory[size] || ""}
+                        onChange={(e) =>
+                          setSizeInventory((prev) => ({ ...prev, [size]: e.target.value }))
+                        }
+                        className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs"
+                      />
+                      {!useSamePriceForAllSizes ? (
+                        <input
+                          type="number"
+                          min="0"
+                          step="100"
+                          placeholder="Price"
+                          value={sizePrices[size] || ""}
+                          onChange={(e) =>
+                            setSizePrices((prev) => ({ ...prev, [size]: e.target.value }))
+                          }
+                          className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs"
+                        />
+                      ) : (
+                        <span className="text-xs text-gray-500">Base price</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-500">
+                  Total stock is calculated from size quantities when size options are enabled.
+                </p>
+              </>
+            )}
           </div>
 
           <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">

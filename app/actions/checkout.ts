@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache';
 interface CheckoutItem {
   id: string;
   product_id: string;
+  selected_size?: string | null;
   quantity: number;
   products: {
     id: string;
@@ -13,6 +14,8 @@ interface CheckoutItem {
     price_ugx: number;
     is_on_sale: boolean;
     sale_price_ugx: number | null;
+    use_size_variants?: boolean;
+    size_inventory?: Record<string, number>;
     stock: number;
   };
 }
@@ -33,9 +36,22 @@ export async function checkout(items: CheckoutItem[], total: number) {
   for (const item of items) {
     const product = item.products;
     if (product.stock < item.quantity) {
-      throw new Error(
-        `${product.title} does not have enough stock (${product.stock} available, requested ${item.quantity})`
-      );
+      if (!product.use_size_variants) {
+        throw new Error(
+          `${product.title} does not have enough stock (${product.stock} available, requested ${item.quantity})`
+        );
+      }
+    }
+
+    if (product.use_size_variants) {
+      const size = item.selected_size || '';
+      const sizeInventory = product.size_inventory || {};
+      const available = Number(sizeInventory[size] || 0);
+      if (!size || available < item.quantity) {
+        throw new Error(
+          `${product.title} (${size || 'size'}) does not have enough stock (${available} available, requested ${item.quantity})`
+        );
+      }
     }
   }
 
@@ -95,6 +111,7 @@ export async function checkout(items: CheckoutItem[], total: number) {
       .insert({
         order_id: order.id,
         product_id: product.id,
+        size: item.selected_size || null,
         quantity: item.quantity,
         price_per_unit: product.price_ugx,
         sale_price_per_unit: product.is_on_sale
@@ -108,12 +125,22 @@ export async function checkout(items: CheckoutItem[], total: number) {
     }
 
     // Decrement inventory
+    const nextStock = product.stock - item.quantity;
+    const updatePayload: Record<string, unknown> = {
+      stock: nextStock,
+      updated_at: new Date(),
+    };
+
+    if (product.use_size_variants && item.selected_size) {
+      const sizeInventory = { ...(product.size_inventory || {}) };
+      const currentSizeStock = Number(sizeInventory[item.selected_size] || 0);
+      sizeInventory[item.selected_size] = Math.max(0, currentSizeStock - item.quantity);
+      updatePayload.size_inventory = sizeInventory;
+    }
+
     const { error: updateError } = await supabase
       .from('products')
-      .update({
-        stock: product.stock - item.quantity,
-        updated_at: new Date(),
-      })
+      .update(updatePayload)
       .eq('id', product.id);
 
     if (updateError) {

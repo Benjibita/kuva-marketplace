@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Search, ShoppingCart, User } from "lucide-react";
+import { Home, Search, ShoppingCart, Store, User } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { createClient } from "@/utils/supabase/client";
 
 const items = [
   { href: "/", label: "Home", icon: Home, match: (p: string) => p === "/" },
@@ -18,23 +20,54 @@ const items = [
     icon: ShoppingCart,
     match: (p: string) => p.startsWith("/cart"),
   },
-  {
-    href: "/settings",
-    label: "Profile",
-    icon: User,
-    match: (p: string) => p.startsWith("/settings"),
-  },
 ] as const;
 
 export function BottomNav() {
   const pathname = usePathname();
+  const supabase = createClient();
+  const [isVendor, setIsVendor] = useState(false);
+
+  useEffect(() => {
+    async function loadRole() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      setIsVendor(user?.user_metadata?.role === "vendor");
+    }
+
+    void loadRole();
+  }, [supabase]);
+
+  const navItems = useMemo(() => {
+    const withProfile = [
+      ...items,
+      ...(isVendor
+        ? [
+            {
+              href: "/vendor/dashboard",
+              label: "Vendor",
+              icon: Store,
+              match: (p: string) => p.startsWith("/vendor"),
+            },
+          ]
+        : []),
+      {
+        href: "/settings",
+        label: "Profile",
+        icon: User,
+        match: (p: string) => p.startsWith("/settings"),
+      },
+    ];
+
+    return withProfile;
+  }, [isVendor]);
 
   return (
     <nav
       className="fixed bottom-5 left-1/2 z-50 flex -translate-x-1/2 items-center gap-0.5 rounded-full bg-black/25 px-1.5 py-1.5 shadow-nav backdrop-blur-md"
       aria-label="Main navigation"
     >
-      {items.map(({ href, label, icon: Icon, match }) => {
+      {navItems.map(({ href, label, icon: Icon, match }) => {
         const active = match(pathname);
         return (
           <Link

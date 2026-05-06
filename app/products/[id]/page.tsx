@@ -9,15 +9,19 @@ import { createClient } from "@/utils/supabase/client";
 import { addToCart } from "@/app/actions/cart";
 import { useNotification } from "@/app/context/NotificationContext";
 import { addGuestCartItem, getGuestCartCount } from "@/utils/guestCart";
-
-const SIZES = ["S", "M", "L", "XL", "XXL"] as const;
+import { PREDEFINED_SIZES } from "@/utils/productSizes";
 
 interface Product {
   id: string;
   title: string;
+  description?: string | null;
   price_ugx: number;
   is_on_sale: boolean;
   sale_price_ugx: number | null;
+  use_size_variants?: boolean;
+  use_size_specific_prices?: boolean;
+  size_inventory?: Record<string, number>;
+  size_prices?: Record<string, number>;
   images: string[];
   stock: number;
 }
@@ -32,6 +36,7 @@ export default function ProductDetailPage({
   const [loading, setLoading] = useState(true);
   const [addingToCart, setAddingToCart] = useState(false);
   const [cartCount, setCartCount] = useState(0);
+  const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const router = useRouter();
   const supabase = createClient();
   const { addNotification } = useNotification();
@@ -40,7 +45,7 @@ export default function ProductDetailPage({
     async function fetchProduct() {
       const { data } = await supabase
         .from("products")
-        .select("id, title, price_ugx, is_on_sale, sale_price_ugx, images, stock")
+        .select("id, title, description, price_ugx, is_on_sale, sale_price_ugx, use_size_variants, use_size_specific_prices, size_inventory, size_prices, images, stock")
         .eq("id", params.id)
         .is("deleted_at", null)
         .maybeSingle();
@@ -51,6 +56,12 @@ export default function ProductDetailPage({
       }
 
       setProduct(data);
+      if (data.use_size_variants) {
+        const firstAvailable = PREDEFINED_SIZES.find(
+          (size) => Number((data.size_inventory || {})[size] || 0) > 0
+        );
+        setSelectedSize(firstAvailable || null);
+      }
       setLoading(false);
     }
 
@@ -82,15 +93,19 @@ export default function ProductDetailPage({
     if (!product) return;
     setAddingToCart(true);
     try {
+      if (product.use_size_variants && !selectedSize) {
+        throw new Error("Please select a size.");
+      }
+
       const {
         data: { user },
       } = await supabase.auth.getUser();
 
       if (user) {
-        await addToCart(product.id, quantity);
+        await addToCart(product.id, quantity, selectedSize);
         setCartCount((prev) => prev + 1);
       } else {
-        addGuestCartItem(product.id, quantity);
+        addGuestCartItem(product.id, quantity, selectedSize);
         setCartCount(getGuestCartCount());
       }
       setQuantity(1);
@@ -106,7 +121,13 @@ export default function ProductDetailPage({
   };
 
   const increaseQuantity = () => {
-    if (product && quantity < product.stock) {
+    if (!product) return;
+    const maxStock =
+      product.use_size_variants && selectedSize
+        ? Number(product.size_inventory?.[selectedSize] || 0)
+        : product.stock;
+
+    if (quantity < maxStock) {
       setQuantity((prev) => prev + 1);
     }
   };
@@ -140,6 +161,15 @@ export default function ProductDetailPage({
     product.sale_price_ugx > 0 &&
     product.sale_price_ugx < product.price_ugx;
   const displayPrice = hasSale ? product.sale_price_ugx! : product.price_ugx;
+  const activeSizePrice =
+    selectedSize && product.use_size_specific_prices
+      ? Number(product.size_prices?.[selectedSize] || 0)
+      : null;
+  const finalPrice = activeSizePrice && activeSizePrice > 0 ? activeSizePrice : displayPrice;
+  const selectedSizeStock =
+    product.use_size_variants && selectedSize
+      ? Number(product.size_inventory?.[selectedSize] || 0)
+      : product.stock;
 
   return (
     <main className="min-h-screen pb-36">
@@ -233,31 +263,46 @@ export default function ProductDetailPage({
         </div>
 
         <p className="mt-2 text-xs text-gray-500">
-          {product.stock > 0
-            ? `${product.stock} in stock`
-            : "Out of stock"}
+          {product.stock <= 0
+            ? "Out of stock"
+            : product.stock <= 5
+              ? "Low stock"
+              : "In stock"}
         </p>
 
-        <div className="mt-6 anim-slide-in-bottom anim-delay-300">
-          <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
-            Size
-          </p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {SIZES.map((size, idx) => (
-              <button
-                key={size}
-                type="button"
-                className={`min-h-[44px] min-w-[48px] rounded-full px-4 text-sm font-medium transition active:scale-95 ${
-                  idx === 3
-                    ? "bg-kuva-lavender text-gray-900"
-                    : "bg-white text-gray-700 shadow-card hover:bg-kuva-surface"
-                }`}
-              >
-                {size}
-              </button>
-            ))}
+        {product.use_size_variants && (
+          <div className="mt-6 anim-slide-in-bottom anim-delay-300">
+            <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+              Size
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {PREDEFINED_SIZES.map((size) => {
+                const available = Number(product.size_inventory?.[size] || 0);
+                const disabled = available <= 0;
+                const active = selectedSize === size;
+
+                return (
+                  <button
+                    key={size}
+                    type="button"
+                    disabled={disabled}
+                    onClick={() => {
+                      setSelectedSize(size);
+                      setQuantity((prev) => Math.min(prev, Math.max(1, available)));
+                    }}
+                    className={`min-h-[44px] min-w-[48px] rounded-full px-4 text-sm font-medium transition active:scale-95 disabled:opacity-40 ${
+                      active
+                        ? "bg-kuva-lavender text-gray-900"
+                        : "bg-white text-gray-700 shadow-card hover:bg-kuva-surface"
+                    }`}
+                  >
+                    {size}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="mt-6 flex flex-wrap items-end gap-3 anim-slide-in-bottom anim-delay-400">
           {hasSale && (
@@ -266,7 +311,7 @@ export default function ProductDetailPage({
             </p>
           )}
           <p className="text-2xl font-bold text-gray-900">
-            UGX {displayPrice.toLocaleString()}
+            UGX {finalPrice.toLocaleString()}
           </p>
         </div>
 
@@ -296,13 +341,20 @@ export default function ProductDetailPage({
             </button>
           </div>
         </div>
+
+        <div className="mt-6 anim-slide-in-bottom anim-delay-550">
+          <h3 className="text-sm font-semibold text-gray-900">Description</h3>
+          <p className="mt-2 text-sm leading-relaxed text-gray-600">
+            {product.description?.trim() || "No description provided for this product yet."}
+          </p>
+        </div>
       </div>
 
       <div className="fixed bottom-12 left-0 right-0 mx-auto max-w-md px-4 anim-slide-in-bottom anim-delay-600">
         <button
           type="button"
           onClick={handleAddToCart}
-          disabled={product.stock === 0 || addingToCart}
+          disabled={selectedSizeStock === 0 || addingToCart || (product.use_size_variants && !selectedSize)}
           className="flex w-full min-h-[52px] items-center justify-center rounded-full bg-black text-sm font-semibold text-white transition hover:bg-primary-dark active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 gap-2"
         >
           {addingToCart ? (

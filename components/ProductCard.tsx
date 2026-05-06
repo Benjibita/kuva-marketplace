@@ -8,6 +8,9 @@ export interface Product {
   price_ugx: number;
   is_on_sale?: boolean | null;
   sale_price_ugx?: number | null;
+  use_size_specific_prices?: boolean | null;
+  size_inventory?: Record<string, number> | null;
+  size_prices?: Record<string, number> | null;
   images: string[];
   category: string | null;
   stock: number;
@@ -30,23 +33,33 @@ export function ProductCard({ product }: ProductCardProps) {
     product.sale_price_ugx > 0 &&
     product.sale_price_ugx < product.price_ugx;
   const displayPrice = hasSale ? product.sale_price_ugx! : product.price_ugx;
+  const cheapestAvailableSizePrice = product.use_size_specific_prices
+    ? Object.entries(product.size_prices || {})
+        .filter(([size, value]) => Number(value) > 0 && Number(product.size_inventory?.[size] || 0) > 0)
+        .map(([, value]) => Number(value))
+        .reduce((min, value) => (value < min ? value : min), Number.POSITIVE_INFINITY)
+    : Number.POSITIVE_INFINITY;
+  const showFromPrice = Number.isFinite(cheapestAvailableSizePrice);
+  const finalDisplayPrice = showFromPrice ? cheapestAvailableSizePrice : displayPrice;
   const discountPct = hasSale
     ? Math.round(((product.price_ugx - product.sale_price_ugx!) / product.price_ugx) * 100)
     : 0;
   const itemLabel =
-    product.stock === 0 ? "Out of stock" : `${product.stock} items`;
+    product.stock === 0 ? "Out of stock" : product.stock <= 5 ? "Low stock" : null;
 
   return (
     <Link
       href={`/products/${product.id}`}
-      className={`group flex flex-col overflow-hidden rounded-5xl bg-white shadow-card transition hover:shadow-card-hover active:scale-[0.99] ${
+      className={`group flex h-full flex-col overflow-hidden rounded-5xl border border-kuva-line/60 bg-white/90 shadow-card backdrop-blur-sm transition hover:shadow-card-hover active:scale-[0.99] ${
         isOutOfStock ? "opacity-90" : ""
       }`}
     >
       <div className="relative aspect-[3/4] bg-kuva-surface">
-        <div className="absolute left-3 top-3 z-10 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-medium text-gray-700 shadow-sm backdrop-blur-sm">
-          {itemLabel}
-        </div>
+        {itemLabel && (
+          <div className="absolute left-3 top-3 z-10 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-medium text-gray-700 shadow-sm backdrop-blur-sm">
+            {itemLabel}
+          </div>
+        )}
         {hasSale && (
           <div
             className="absolute right-3 top-3 z-10 flex min-h-8 min-w-8 items-center justify-center rounded-full bg-white/90 px-2 text-[11px] font-semibold text-kuva-accent shadow-sm backdrop-blur-sm"
@@ -81,22 +94,33 @@ export function ProductCard({ product }: ProductCardProps) {
         )}
       </div>
 
-      <div className="flex items-end justify-between gap-2 p-3.5">
-        <div className="min-w-0 flex-1">
-          <h4 className="line-clamp-2 text-sm font-semibold leading-snug tracking-tight text-gray-900">
-            {product.title}
-          </h4>
-          <p className="mt-1 truncate text-[11px] font-normal leading-tight text-gray-500">
-            {vendorName}
-          </p>
-          <div className="mt-1.5 flex flex-col gap-0.5">
-            {hasSale && (
-              <p className="whitespace-nowrap text-[11px] text-gray-400 line-through">
-                UGX {product.price_ugx.toLocaleString()}
-              </p>
-            )}
-            <p className="whitespace-nowrap text-base font-bold text-gray-900">
-              UGX {displayPrice.toLocaleString()}
+      <div className="flex min-h-[118px] items-end justify-between gap-2 px-3.5 pb-3 pt-2.5">
+        <div className="flex min-w-0 flex-1 flex-col justify-between self-stretch">
+          <div>
+            <h4 className="line-clamp-2 min-h-[2.25rem] text-sm font-semibold leading-snug tracking-tight text-gray-900">
+              {product.title}
+            </h4>
+            <p className="mt-0.5 truncate text-[11px] font-normal leading-tight text-gray-500">
+              {vendorName}
+            </p>
+          </div>
+          <div className="mt-1 flex min-h-[2.5rem] flex-col justify-end gap-0">
+            <p
+              className={`whitespace-nowrap text-[11px] leading-none text-gray-400 line-through ${
+                hasSale && !showFromPrice ? "visible" : "invisible"
+              }`}
+            >
+              UGX {product.price_ugx.toLocaleString()}
+            </p>
+            <p
+              className={`whitespace-nowrap text-[11px] leading-none font-semibold uppercase tracking-wide text-gray-500 ${
+                showFromPrice ? "visible" : "invisible"
+              }`}
+            >
+              from
+            </p>
+            <p className="whitespace-nowrap text-base leading-none font-bold text-gray-900">
+              UGX {finalDisplayPrice.toLocaleString()}
             </p>
           </div>
         </div>

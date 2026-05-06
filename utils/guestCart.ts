@@ -2,6 +2,7 @@ const GUEST_CART_KEY = 'kuva_guest_cart'
 
 export interface GuestCartItem {
   product_id: string
+  selected_size?: string | null
   quantity: number
 }
 
@@ -28,9 +29,12 @@ export function saveGuestCartItems(items: GuestCartItem[]) {
   window.localStorage.setItem(GUEST_CART_KEY, JSON.stringify(items))
 }
 
-export function addGuestCartItem(productId: string, quantity: number) {
+export function addGuestCartItem(productId: string, quantity: number, selectedSize?: string | null) {
   const current = getGuestCartItems()
-  const existing = current.find((item) => item.product_id === productId)
+  const normalizedSize = selectedSize || null
+  const existing = current.find(
+    (item) => item.product_id === productId && (item.selected_size || null) === normalizedSize
+  )
 
   if (existing) {
     existing.quantity += quantity
@@ -38,15 +42,16 @@ export function addGuestCartItem(productId: string, quantity: number) {
     return
   }
 
-  current.push({ product_id: productId, quantity })
+  current.push({ product_id: productId, selected_size: normalizedSize, quantity })
   saveGuestCartItems(current)
 }
 
-export function updateGuestCartItemQuantity(productId: string, quantity: number) {
+export function updateGuestCartItemQuantity(productId: string, quantity: number, selectedSize?: string | null) {
   const current = getGuestCartItems()
+  const normalizedSize = selectedSize || null
   const next = current
     .map((item) =>
-      item.product_id === productId
+      item.product_id === productId && (item.selected_size || null) === normalizedSize
         ? { ...item, quantity }
         : item
     )
@@ -55,9 +60,12 @@ export function updateGuestCartItemQuantity(productId: string, quantity: number)
   saveGuestCartItems(next)
 }
 
-export function removeGuestCartItem(productId: string) {
+export function removeGuestCartItem(productId: string, selectedSize?: string | null) {
   const current = getGuestCartItems()
-  const next = current.filter((item) => item.product_id !== productId)
+  const normalizedSize = selectedSize || null
+  const next = current.filter(
+    (item) => !(item.product_id === productId && (item.selected_size || null) === normalizedSize)
+  )
   saveGuestCartItems(next)
 }
 

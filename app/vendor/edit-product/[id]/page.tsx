@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { SoftDeleteProductButton } from "@/components/SoftDeleteProductButton";
+import { PREDEFINED_SIZES } from "@/utils/productSizes";
 
 export default function EditProductPage() {
   const params = useParams();
@@ -21,6 +22,10 @@ export default function EditProductPage() {
   const [price, setPrice] = useState("");
   const [stock, setStock] = useState("");
   const [description, setDescription] = useState("");
+  const [useSizes, setUseSizes] = useState(false);
+  const [useSamePriceForAllSizes, setUseSamePriceForAllSizes] = useState(true);
+  const [sizeInventory, setSizeInventory] = useState<Record<string, string>>({});
+  const [sizePrices, setSizePrices] = useState<Record<string, string>>({});
   const [isOnSale, setIsOnSale] = useState(false);
   const [salePrice, setSalePrice] = useState("");
   const [isLoading, setIsLoading] = useState(true);
@@ -76,6 +81,18 @@ export default function EditProductPage() {
         setPrice(data.price_ugx.toString());
         setStock(data.stock.toString());
         setDescription(data.description || "");
+        setUseSizes(Boolean(data.use_size_variants));
+        setUseSamePriceForAllSizes(!Boolean(data.use_size_specific_prices));
+        const inv = data.size_inventory || {};
+        const prices = data.size_prices || {};
+        const invState: Record<string, string> = {};
+        const priceState: Record<string, string> = {};
+        PREDEFINED_SIZES.forEach((size) => {
+          if (inv[size] != null) invState[size] = String(inv[size]);
+          if (prices[size] != null) priceState[size] = String(prices[size]);
+        });
+        setSizeInventory(invState);
+        setSizePrices(priceState);
         setIsOnSale(Boolean(data.is_on_sale));
         setSalePrice(
           data.sale_price_ugx == null ? "" : data.sale_price_ugx.toString(),
@@ -125,13 +142,42 @@ export default function EditProductPage() {
         }
       }
 
+      const parsedSizeInventory: Record<string, number> = {};
+      const parsedSizePrices: Record<string, number> = {};
+      let computedStock = parseInt(stock, 10) || 0;
+
+      if (useSizes) {
+        computedStock = 0;
+        for (const size of PREDEFINED_SIZES) {
+          const qty = parseInt(sizeInventory[size] || "0", 10);
+          if (qty > 0) {
+            parsedSizeInventory[size] = qty;
+            computedStock += qty;
+          }
+          if (!useSamePriceForAllSizes) {
+            const value = parseFloat(sizePrices[size] || "");
+            if (!Number.isNaN(value) && value > 0) {
+              parsedSizePrices[size] = value;
+            }
+          }
+        }
+        if (computedStock <= 0) {
+          setError("Enter stock for at least one size.");
+          return;
+        }
+      }
+
       const { error: updateError } = await supabase
         .from("products")
         .update({
           title,
           price_ugx: basePrice,
-          stock: parseInt(stock, 10),
+          stock: computedStock,
           description,
+          use_size_variants: useSizes,
+          use_size_specific_prices: useSizes && !useSamePriceForAllSizes,
+          size_inventory: useSizes ? parsedSizeInventory : {},
+          size_prices: useSizes && !useSamePriceForAllSizes ? parsedSizePrices : {},
           is_on_sale: isOnSale,
           sale_price_ugx: isOnSale ? parsedSalePrice : null,
           updated_at: new Date().toISOString(),
@@ -268,9 +314,67 @@ export default function EditProductPage() {
                 type="number"
                 value={stock}
                 onChange={(e) => setStock(e.target.value)}
+                disabled={useSizes}
                 className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
             </div>
+          </div>
+
+          <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 space-y-3">
+            <label className="flex items-center justify-between gap-3 text-sm font-medium text-gray-700">
+              <span>Add size options (XS to XXL)</span>
+              <input
+                type="checkbox"
+                checked={useSizes}
+                onChange={(e) => setUseSizes(e.target.checked)}
+                className="h-4 w-4 accent-black"
+              />
+            </label>
+            {useSizes && (
+              <>
+                <label className="flex items-center justify-between gap-3 text-sm font-medium text-gray-700">
+                  <span>Use same price for all sizes</span>
+                  <input
+                    type="checkbox"
+                    checked={useSamePriceForAllSizes}
+                    onChange={(e) => setUseSamePriceForAllSizes(e.target.checked)}
+                    className="h-4 w-4 accent-black"
+                  />
+                </label>
+                <div className="grid grid-cols-1 gap-2">
+                  {PREDEFINED_SIZES.map((size) => (
+                    <div key={size} className="grid grid-cols-3 items-center gap-2">
+                      <span className="text-xs font-semibold text-gray-700">{size}</span>
+                      <input
+                        type="number"
+                        min="0"
+                        placeholder="Qty"
+                        value={sizeInventory[size] || ""}
+                        onChange={(e) =>
+                          setSizeInventory((prev) => ({ ...prev, [size]: e.target.value }))
+                        }
+                        className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs"
+                      />
+                      {!useSamePriceForAllSizes ? (
+                        <input
+                          type="number"
+                          min="0"
+                          step="100"
+                          placeholder="Price"
+                          value={sizePrices[size] || ""}
+                          onChange={(e) =>
+                            setSizePrices((prev) => ({ ...prev, [size]: e.target.value }))
+                          }
+                          className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs"
+                        />
+                      ) : (
+                        <span className="text-xs text-gray-500">Base price</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
 
           <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
