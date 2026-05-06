@@ -120,7 +120,7 @@ export default async function VendorDashboard({
         ) : (
           <div className="rounded-2xl border-2 border-dashed border-gray-200 bg-white/85 backdrop-blur-sm p-8 text-center anim-slide-in-bottom anim-delay-250">
             <Package className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-            <p className="text-gray-500 mb-4">You haven't added any products yet.</p>
+            <p className="text-gray-500 mb-4">You haven&apos;t added any products yet.</p>
             <Link 
               href="/vendor/upload" 
               className="inline-block bg-primary text-white font-bold py-2 px-6 rounded-xl shadow-sm hover:bg-primary-dark transition"

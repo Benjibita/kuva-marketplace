@@ -55,7 +55,7 @@ export default function LoginPage({
         )}
 
         <div className="anim-slide-in-bottom anim-delay-500 mt-6 text-center text-sm text-gray-500">
-          Don't have an account?{' '}
+          Don&apos;t have an account?{' '}
           <Link href="/signup" className="text-primary font-semibold hover:underline">
             Sign Up
           </Link>

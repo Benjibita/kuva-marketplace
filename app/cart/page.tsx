@@ -4,7 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Trash2, Plus, Minus, Loader2 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { useNotification } from '@/app/context/NotificationContext';
 import {
@@ -53,7 +53,7 @@ export default function CartPage() {
   const [isGuestCart, setIsGuestCart] = useState(false);
   const router = useRouter();
   const { addNotification } = useNotification();
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   const [hasResumedCheckout, setHasResumedCheckout] = useState(false);
 
   useEffect(() => {
@@ -121,7 +121,7 @@ export default function CartPage() {
     }
 
     fetchCart();
-  }, []);
+  }, [supabase]);
 
   const handleRemoveItem = async (cartItemId: string) => {
     try {
@@ -266,7 +266,7 @@ export default function CartPage() {
     }
   };
 
-  const handleCheckout = async () => {
+  const handleCheckout = useCallback(async () => {
     if (cartItems.length === 0) {
       addNotification('Your cart is empty', 'info');
       return;
@@ -318,7 +318,7 @@ export default function CartPage() {
     } finally {
       setCheckingOut(false);
     }
-  };
+  }, [cartItems, total, subtotal, shippingCost, supabase, router, addNotification, checkingOut]);
 
   useEffect(() => {
     async function resumeCheckoutIfNeeded() {
@@ -341,7 +341,7 @@ export default function CartPage() {
     }
 
     void resumeCheckoutIfNeeded();
-  }, [loading, hasResumedCheckout, cartItems.length, supabase, addNotification]);
+  }, [loading, hasResumedCheckout, cartItems.length, supabase, addNotification, handleCheckout]);
 
   if (loading) {
     return (
