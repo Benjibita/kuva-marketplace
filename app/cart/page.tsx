@@ -25,6 +25,7 @@ import { PREDEFINED_SIZES } from '@/utils/productSizes';
 
 interface CartProduct {
   id: string;
+  vendor_id?: string;
   title: string;
   price_ugx: number;
   is_on_sale: boolean;
@@ -92,7 +93,7 @@ export default function CartPage() {
         const productIds = guestItems.map((item) => item.product_id);
         const { data: products } = await supabase
           .from('products')
-          .select('id, title, price_ugx, is_on_sale, sale_price_ugx, use_size_variants, use_size_specific_prices, size_inventory, size_prices, images, stock')
+          .select('id, vendor_id, title, price_ugx, is_on_sale, sale_price_ugx, use_size_variants, use_size_specific_prices, size_inventory, size_prices, images, stock')
           .in('id', productIds)
           .is('deleted_at', null);
 
@@ -318,7 +319,7 @@ export default function CartPage() {
     } finally {
       setCheckingOut(false);
     }
-  }, [cartItems, total, subtotal, shippingCost, supabase, router, addNotification, checkingOut]);
+  }, [cartItems, total, subtotal, shippingCost, supabase, router, addNotification]);
 
   useEffect(() => {
     async function resumeCheckoutIfNeeded() {

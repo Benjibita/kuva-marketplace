@@ -182,6 +182,7 @@ export async function getCartItems() {
       selected_size,
       products (
         id,
+        vendor_id,
         title,
         price_ugx,
         is_on_sale,

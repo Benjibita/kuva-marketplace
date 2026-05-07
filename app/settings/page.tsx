@@ -1,6 +1,6 @@
 import { createClient } from '@/utils/supabase/server'
 import { deleteAccount, logout } from '@/app/login/actions'
-import { LogOut, Pencil, Trash2, User } from 'lucide-react'
+import { LogOut, Package, Pencil, Trash2, User } from 'lucide-react'
 import Link from 'next/link'
 
 export default async function SettingsPage() {
@@ -95,6 +95,16 @@ export default async function SettingsPage() {
               <p className="text-gray-900 font-medium mt-1">{phoneNumber || 'Not provided'}</p>
             </div>
           </div>
+        </div>
+
+        <div className="mb-6 rounded-2xl border border-gray-100 bg-white/85 backdrop-blur-sm p-6 shadow-sm anim-slide-in-bottom anim-delay-150">
+          <Link
+            href="/orders"
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white/90 backdrop-blur-sm py-3 px-4 text-sm font-semibold text-gray-800 transition hover:bg-white active:scale-[0.99]"
+          >
+            <Package className="h-5 w-5" strokeWidth={2} />
+            My orders
+          </Link>
         </div>
 
         <div className="mb-6 rounded-2xl border border-gray-100 bg-white/85 backdrop-blur-sm p-6 shadow-sm anim-slide-in-bottom anim-delay-200">
