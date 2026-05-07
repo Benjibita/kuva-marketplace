@@ -26,6 +26,7 @@ export function BottomNav() {
   const pathname = usePathname();
   const supabase = createClient();
   const [isVendor, setIsVendor] = useState(false);
+  const [vendorUnread, setVendorUnread] = useState(false);
 
   useEffect(() => {
     async function loadRole() {
@@ -37,6 +38,39 @@ export function BottomNav() {
 
     void loadRole();
   }, [supabase]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadUnread() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user || user.user_metadata?.role !== "vendor") {
+        if (!cancelled) setVendorUnread(false);
+        return;
+      }
+
+      const { count, error } = await supabase
+        .from("vendor_notifications")
+        .select("*", { count: "exact", head: true })
+        .eq("vendor_id", user.id)
+        .eq("status", "unread");
+
+      if (error) {
+        if (!cancelled) setVendorUnread(false);
+        return;
+      }
+      if (!cancelled) setVendorUnread((count ?? 0) > 0);
+    }
+
+    void loadUnread();
+    const t = setInterval(loadUnread, 12000);
+    return () => {
+      cancelled = true;
+      clearInterval(t);
+    };
+  }, [supabase, pathname]);
 
   const navItems = useMemo(() => {
     const withProfile = [
@@ -69,6 +103,8 @@ export function BottomNav() {
     >
       {navItems.map(({ href, label, icon: Icon, match }) => {
         const active = match(pathname);
+        const showVendorDot =
+          href === "/vendor/dashboard" && isVendor && vendorUnread;
         return (
           <Link
             key={href}
@@ -81,14 +117,22 @@ export function BottomNav() {
                 : "min-w-[44px] px-2.5 text-white/85 hover:bg-white/12"
             } `}
           >
-            <span className="flex items-center gap-0">
-              <Icon
-                className={`h-5 w-5 shrink-0 transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
-                  active ? "scale-100" : "scale-100 group-hover:scale-105"
-                }`}
-                strokeWidth={1.75}
-                aria-hidden
-              />
+            <span className="relative flex items-center gap-0">
+              <span className="relative inline-flex flex-col items-center">
+                <Icon
+                  className={`h-5 w-5 shrink-0 transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                    active ? "scale-100" : "scale-100 group-hover:scale-105"
+                  }`}
+                  strokeWidth={1.75}
+                  aria-hidden
+                />
+                {showVendorDot ? (
+                  <span
+                    className="pointer-events-none absolute -bottom-1 left-1/2 z-10 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-red-500 ring-2 ring-white/40"
+                    title="New order notifications"
+                  />
+                ) : null}
+              </span>
               <span
                 className={`inline-block overflow-hidden whitespace-nowrap transition-[max-width,opacity,margin] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
                   active

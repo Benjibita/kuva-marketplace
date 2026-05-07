@@ -2,9 +2,9 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { Trash2, Plus, Minus, Loader2 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { useNotification } from '@/app/context/NotificationContext';
 import {
@@ -25,6 +25,7 @@ import { PREDEFINED_SIZES } from '@/utils/productSizes';
 
 interface CartProduct {
   id: string;
+  vendor_id?: string;
   title: string;
   price_ugx: number;
   is_on_sale: boolean;
@@ -52,9 +53,8 @@ export default function CartPage() {
   const [checkingOut, setCheckingOut] = useState(false);
   const [isGuestCart, setIsGuestCart] = useState(false);
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { addNotification } = useNotification();
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   const [hasResumedCheckout, setHasResumedCheckout] = useState(false);
 
   useEffect(() => {
@@ -93,7 +93,7 @@ export default function CartPage() {
         const productIds = guestItems.map((item) => item.product_id);
         const { data: products } = await supabase
           .from('products')
-          .select('id, title, price_ugx, is_on_sale, sale_price_ugx, use_size_variants, use_size_specific_prices, size_inventory, size_prices, images, stock')
+          .select('id, vendor_id, title, price_ugx, is_on_sale, sale_price_ugx, use_size_variants, use_size_specific_prices, size_inventory, size_prices, images, stock')
           .in('id', productIds)
           .is('deleted_at', null);
 
@@ -122,7 +122,7 @@ export default function CartPage() {
     }
 
     fetchCart();
-  }, []);
+  }, [supabase]);
 
   const handleRemoveItem = async (cartItemId: string) => {
     try {
@@ -267,7 +267,7 @@ export default function CartPage() {
     }
   };
 
-  const handleCheckout = async () => {
+  const handleCheckout = useCallback(async () => {
     if (cartItems.length === 0) {
       addNotification('Your cart is empty', 'info');
       return;
@@ -319,12 +319,16 @@ export default function CartPage() {
     } finally {
       setCheckingOut(false);
     }
-  };
+  }, [cartItems, total, subtotal, shippingCost, supabase, router, addNotification]);
 
   useEffect(() => {
     async function resumeCheckoutIfNeeded() {
       if (loading || hasResumedCheckout || cartItems.length === 0) return;
-      if (searchParams.get('resumeCheckout') !== '1') return;
+      const resumeCheckout =
+        typeof window !== 'undefined'
+          ? new URLSearchParams(window.location.search).get('resumeCheckout')
+          : null;
+      if (resumeCheckout !== '1') return;
 
       const {
         data: { user },
@@ -338,7 +342,7 @@ export default function CartPage() {
     }
 
     void resumeCheckoutIfNeeded();
-  }, [loading, hasResumedCheckout, cartItems.length, searchParams, supabase, addNotification]);
+  }, [loading, hasResumedCheckout, cartItems.length, supabase, addNotification, handleCheckout]);
 
   if (loading) {
     return (

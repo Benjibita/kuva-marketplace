@@ -54,7 +54,7 @@ export default function SignupPage({
               <ShoppingBag className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="font-bold text-gray-900 text-lg">I'm a Buyer</h3>
+              <h3 className="font-bold text-gray-900 text-lg">I&apos;m a Buyer</h3>
               <p className="text-sm text-gray-500">I want to discover and buy local products.</p>
             </div>
           </button>
@@ -67,7 +67,7 @@ export default function SignupPage({
               <Store className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="font-bold text-gray-900 text-lg">I'm a Vendor</h3>
+              <h3 className="font-bold text-gray-900 text-lg">I&apos;m a Vendor</h3>
               <p className="text-sm text-gray-500">I want to set up shop and sell my products.</p>
             </div>
           </button>
