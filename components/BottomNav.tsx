@@ -98,7 +98,7 @@ export function BottomNav() {
 
   return (
     <nav
-      className="fixed bottom-5 left-1/2 z-50 flex -translate-x-1/2 items-center gap-0.5 rounded-full bg-black/25 px-1.5 py-1.5 shadow-nav backdrop-blur-md"
+      className="fixed bottom-5 left-1/2 z-50 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-black/25 px-2.5 py-1.5 shadow-nav backdrop-blur-md"
       aria-label="Main navigation"
     >
       {navItems.map(({ href, label, icon: Icon, match }) => {
@@ -113,8 +113,8 @@ export function BottomNav() {
             aria-label={label}
             className={`kuva-nav-item group relative flex min-h-[44px] items-center justify-center overflow-hidden rounded-full py-2 text-sm font-medium transition-[background-color,color,transform,padding,min-width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-[0.96] ${
               active
-                ? "min-w-[44px] bg-black px-3 text-white font-light shadow-nav-hover"
-                : "min-w-[44px] px-2.5 text-white/85 hover:bg-white/12"
+                ? "min-w-[48px] bg-black px-4 text-white font-light shadow-nav-hover"
+                : "min-w-[48px] px-3.5 text-white/85 hover:bg-white/12"
             } `}
           >
             <span className="relative flex items-center gap-0">
