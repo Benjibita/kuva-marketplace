@@ -6,6 +6,50 @@ import { createClient } from '@/utils/supabase/server'
 
 const UGANDA_PHONE_HELPER_TEXT = 'Use a valid Uganda number: 07XXXXXXXX, 2567XXXXXXXX, or +2567XXXXXXXX.'
 
+function normalizeErrorMessage(message: string | undefined): string {
+  return (message || '').toLowerCase()
+}
+
+function getLoginErrorMessage(errorMessage: string | undefined, status?: number): string {
+  const normalizedMessage = normalizeErrorMessage(errorMessage)
+
+  if (
+    normalizedMessage.includes('invalid login credentials') ||
+    normalizedMessage.includes('invalid credentials') ||
+    normalizedMessage.includes('email not confirmed')
+  ) {
+    return 'Incorrect email or password.'
+  }
+
+  if (status === 429 || normalizedMessage.includes('rate limit') || normalizedMessage.includes('too many requests')) {
+    return 'Too many attempts. Please wait a moment and try again.'
+  }
+
+  return 'Could not sign in right now. Please try again.'
+}
+
+function getSignupErrorMessage(errorMessage: string | undefined, status?: number): string {
+  const normalizedMessage = normalizeErrorMessage(errorMessage)
+
+  if (normalizedMessage.includes('already registered') || normalizedMessage.includes('user already registered')) {
+    return 'An account with this email already exists. Please log in instead.'
+  }
+
+  if (normalizedMessage.includes('invalid email')) {
+    return 'Please enter a valid email address.'
+  }
+
+  if (status === 429 || normalizedMessage.includes('rate limit') || normalizedMessage.includes('too many requests')) {
+    return 'Too many sign-up attempts. Please wait a moment and try again.'
+  }
+
+  return 'Could not create your account right now. Please try again.'
+}
+
+function redirectWithMessage(path: string, message: string) {
+  return redirect(`${path}?message=${encodeURIComponent(message)}`)
+}
+
 function normalizeUgandaPhoneNumber(rawPhone: string): string | null {
   const trimmed = rawPhone.trim()
   if (!trimmed) return null
@@ -45,7 +89,7 @@ export async function login(formData: FormData) {
   })
 
   if (error) {
-    return redirect('/login?message=Incorrect email or password')
+    return redirectWithMessage('/login', getLoginErrorMessage(error.message, error.status))
   }
 
   revalidatePath('/', 'layout')
@@ -66,7 +110,7 @@ export async function signup(formData: FormData) {
   const normalizedPhoneNumber = normalizeUgandaPhoneNumber(phoneNumber)
 
   if (!normalizedPhoneNumber) {
-    return redirect(`/signup?message=${encodeURIComponent(UGANDA_PHONE_HELPER_TEXT)}`)
+    return redirectWithMessage('/signup', UGANDA_PHONE_HELPER_TEXT)
   }
 
   if (role === 'vendor' && businessName) {
@@ -77,7 +121,7 @@ export async function signup(formData: FormData) {
       .maybeSingle()
 
     if (existingProfile) {
-      return redirect('/signup?message=Business name already exists. Please choose another.')
+      return redirectWithMessage('/signup', 'Business name already exists. Please choose another.')
     }
   }
 
@@ -95,7 +139,7 @@ export async function signup(formData: FormData) {
   })
 
   if (error) {
-    return redirect('/signup?message=Could not create user. Please try again.')
+    return redirectWithMessage('/signup', getSignupErrorMessage(error.message, error.status))
   }
 
   // Insert the profile row so vendor_id FK on products is satisfied

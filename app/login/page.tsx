@@ -1,12 +1,17 @@
+'use client'
+
 import Link from 'next/link'
+import { useState } from 'react'
 import { login } from './actions'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Eye, EyeOff } from 'lucide-react'
 
 export default function LoginPage({
   searchParams,
 }: {
   searchParams: { message: string }
 }) {
+  const [showPassword, setShowPassword] = useState(false)
+
   return (
     <div className="flex-1 flex flex-col w-full px-8 sm:max-w-md justify-center gap-2 min-h-screen mx-auto">
       <Link
@@ -34,12 +39,22 @@ export default function LoginPage({
         <label className="anim-slide-in-bottom anim-delay-250 text-sm font-medium" htmlFor="password">
           Password
         </label>
-        <input
-          className="anim-slide-in-bottom anim-delay-300 mb-6 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 transition focus:outline-none focus:ring-2 focus:ring-primary"
-          type="password"
-          name="password"
-          required
-        />
+        <div className="anim-slide-in-bottom anim-delay-300 relative mb-6">
+          <input
+            className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 pr-12 transition focus:outline-none focus:ring-2 focus:ring-primary"
+            type={showPassword ? 'text' : 'password'}
+            name="password"
+            required
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword((previous) => !previous)}
+            aria-label={showPassword ? 'Hide password' : 'Show password'}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 transition hover:text-gray-700"
+          >
+            {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+          </button>
+        </div>
         
         <button
           formAction={login}

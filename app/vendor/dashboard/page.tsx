@@ -2,19 +2,8 @@ import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Plus, Package, Edit3, ClipboardList } from 'lucide-react'
+import { Plus, Package, Edit3, ClipboardList, ChevronRight } from 'lucide-react'
 import { SoftDeleteProductButton } from '@/components/SoftDeleteProductButton'
-import { VendorOrdersSection, type VendorOrderLineVM } from '@/components/VendorOrdersSection'
-import { markVendorOrderNotificationsRead } from '@/app/actions/vendorOrders'
-
-function buyerLabel(
-  buyerId: string,
-  profile?: { phone_number: string | null; business_name: string | null } | null
-) {
-  if (profile?.business_name) return profile.business_name
-  if (profile?.phone_number) return profile.phone_number
-  return `Customer (${buyerId.slice(0, 8)}…)`
-}
 
 export default async function VendorDashboard({
   searchParams,
@@ -28,8 +17,6 @@ export default async function VendorDashboard({
     redirect('/')
   }
 
-  await markVendorOrderNotificationsRead()
-
   const { data: products } = await supabase
     .from('products')
     .select('*')
@@ -37,85 +24,11 @@ export default async function VendorDashboard({
     .is('deleted_at', null)
     .order('created_at', { ascending: false })
 
-  const { data: orderLines } = await supabase
-    .from('order_items')
-    .select(
-      `
-      id,
-      quantity,
-      vendor_status,
-      size,
-      created_at,
-      order_id,
-      orders (
-        id,
-        created_at,
-        buyer_id
-      ),
-      products (
-        title,
-        images
-      )
-    `
-    )
+  const { count: unreadOrderCount } = await supabase
+    .from('vendor_notifications')
+    .select('*', { count: 'exact', head: true })
     .eq('vendor_id', user.id)
-    .order('created_at', { ascending: false })
-
-  const buyerIds = Array.from(
-    new Set(
-      (orderLines ?? [])
-        .map((row) => {
-          const o = row.orders as { buyer_id?: string } | null
-          return o?.buyer_id
-        })
-        .filter((id): id is string => Boolean(id))
-    )
-  )
-
-  let profileMap = new Map<
-    string,
-    { phone_number: string | null; business_name: string | null }
-  >()
-  if (buyerIds.length > 0) {
-    const { data: buyerProfiles } = await supabase
-      .from('profiles')
-      .select('id, phone_number, business_name')
-      .in('id', buyerIds)
-
-    profileMap = new Map(
-      (buyerProfiles ?? []).map((p) => [
-        p.id,
-        { phone_number: p.phone_number, business_name: p.business_name },
-      ])
-    )
-  }
-
-  const orderLinesVm: VendorOrderLineVM[] = (orderLines ?? []).map((l) => {
-    const rawOrder = l.orders as unknown
-    const order = (
-      Array.isArray(rawOrder) ? rawOrder[0] : rawOrder
-    ) as {
-      id: string
-      created_at: string
-      buyer_id: string
-    }
-    const rawProduct = l.products as unknown
-    const product = (
-      Array.isArray(rawProduct) ? rawProduct[0] : rawProduct
-    ) as { title: string; images: string[] | null }
-    const prof = profileMap.get(order.buyer_id)
-    return {
-      id: l.id,
-      quantity: l.quantity,
-      vendor_status: l.vendor_status as string,
-      size: l.size,
-      order_id: order.id,
-      order_created_at: order.created_at,
-      buyer_label: buyerLabel(order.buyer_id, prof),
-      product_title: product.title,
-      product_image: product.images?.[0] ?? null,
-    }
-  })
+    .eq('status', 'unread')
 
   const message =
     typeof searchParams.message === 'string' ? searchParams.message : undefined
@@ -150,12 +63,32 @@ export default async function VendorDashboard({
           </Link>
         </div>
 
-        <div className="anim-slide-in-bottom anim-delay-150">
-          <h3 className="mb-3 flex items-center gap-2 font-bold text-gray-900">
-            <ClipboardList className="h-5 w-5 text-primary" /> Orders from customers
-          </h3>
-          <VendorOrdersSection lines={orderLinesVm} />
-        </div>
+        <Link
+          href="/vendor/orders"
+          className="group flex items-center justify-between gap-3 rounded-2xl border border-gray-100 bg-white/85 px-5 py-4 shadow-sm backdrop-blur-sm transition hover:bg-white anim-slide-in-bottom anim-delay-150"
+        >
+          <span className="flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <ClipboardList className="h-5 w-5" />
+            </span>
+            <span>
+              <span className="block text-sm font-semibold text-gray-900">
+                Orders from customers
+              </span>
+              <span className="block text-xs text-gray-500">
+                Confirm, dispatch and complete fulfilment
+              </span>
+            </span>
+          </span>
+          <span className="flex items-center gap-2">
+            {unreadOrderCount && unreadOrderCount > 0 ? (
+              <span className="inline-flex min-w-[1.5rem] items-center justify-center rounded-full bg-red-500 px-2 py-0.5 text-xs font-semibold text-white">
+                {unreadOrderCount}
+              </span>
+            ) : null}
+            <ChevronRight className="h-5 w-5 text-gray-400 transition group-hover:translate-x-0.5" />
+          </span>
+        </Link>
 
         <div className="flex items-center justify-between anim-slide-in-bottom anim-delay-200">
           <h3 className="font-bold text-gray-900 flex items-center gap-2">
