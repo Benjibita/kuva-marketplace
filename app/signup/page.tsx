@@ -1,10 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { signup } from '@/app/login/actions'
-import { ArrowLeft, Eye, EyeOff, ShoppingBag, Store } from 'lucide-react'
+import { ArrowLeft, Eye, EyeOff, Loader2, ShoppingBag, Store } from 'lucide-react'
 
 export default function SignupPage({
   searchParams,
@@ -13,7 +13,12 @@ export default function SignupPage({
 }) {
   const [role, setRole] = useState<'buyer' | 'vendor' | null>(null)
   const [showPassword, setShowPassword] = useState(false)
+  const [submitPending, setSubmitPending] = useState(false)
   const router = useRouter()
+
+  useEffect(() => {
+    setSubmitPending(false)
+  }, [searchParams?.message])
 
   const goBack = () => {
     if (typeof window !== 'undefined' && window.history.length > 1) {
@@ -81,7 +86,10 @@ export default function SignupPage({
           </div>
         </div>
       ) : (
-        <form className="flex w-full flex-1 flex-col gap-2 py-6 text-foreground">
+        <form
+          className="flex w-full flex-1 flex-col gap-2 py-6 text-foreground"
+          onSubmit={() => setSubmitPending(true)}
+        >
           <div className="anim-slide-in-bottom mb-6 flex min-h-[20vh] flex-col items-center justify-center gap-2 text-center anim-delay-75">
             <h1 className="text-3xl font-bold text-primary">Create Account</h1>
             <p className="text-gray-500 text-sm">
@@ -156,10 +164,20 @@ export default function SignupPage({
           </div>
           
           <button
+            type="submit"
             formAction={signup}
-            className="anim-slide-in-bottom anim-delay-475 mb-4 rounded-xl bg-primary px-4 py-3 font-semibold text-white shadow-sm transition hover:bg-primary/90 active:scale-[0.98]"
+            disabled={submitPending}
+            aria-busy={submitPending}
+            className="anim-slide-in-bottom anim-delay-475 mb-4 flex min-h-[48px] items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 font-semibold text-white shadow-sm transition hover:bg-primary/90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70"
           >
-            Sign Up
+            {submitPending ? (
+              <>
+                <Loader2 className="h-5 w-5 shrink-0 animate-spin" aria-hidden />
+                <span>Creating account…</span>
+              </>
+            ) : (
+              'Sign Up'
+            )}
           </button>
 
           {searchParams?.message && (
