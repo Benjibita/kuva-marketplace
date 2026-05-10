@@ -14,15 +14,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { PREDEFINED_SIZES } from "@/utils/productSizes";
+import { MARKETPLACE_CATEGORIES } from "@/lib/marketplaceCategories";
 
-const CATEGORIES = [
-  { value: "fashion", label: "Fashion & Apparel" },
-  { value: "crafts", label: "Crafts & Art" },
-  { value: "beauty", label: "Health & Beauty" },
-  { value: "electronics", label: "Electronics" },
-  { value: "groceries", label: "Groceries & Food" },
-  { value: "home", label: "Home & Living" },
-];
+const VENDOR_CATEGORY_OPTIONS = MARKETPLACE_CATEGORIES.map((c) => ({
+  value: c.slug,
+  label: c.label,
+}));
 
 const MAX_IMAGES = 5;
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
@@ -530,7 +527,7 @@ export default function VendorUpload() {
               className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/40 focus:bg-white transition appearance-none"
             >
               <option value="">Select a category</option>
-              {CATEGORIES.map((c) => (
+              {VENDOR_CATEGORY_OPTIONS.map((c) => (
                 <option key={c.value} value={c.value}>
                   {c.label}
                 </option>

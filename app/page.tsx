@@ -1,25 +1,23 @@
 import {
   ArrowUpRight,
-  Search,
   ShoppingBag,
-  Store,
   ChevronRight,
 } from "lucide-react";
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
-import { UserMenu } from "@/components/UserMenu";
 import { WelcomeBanner } from "@/components/WelcomeBanner";
 import { ProductCard } from "@/components/ProductCard";
+import { CatalogEmptyState } from "@/components/CatalogEmptyState";
+import { MARKETPLACE_CATEGORIES } from "@/lib/marketplaceCategories";
+import { CATALOG_PRODUCT_SELECT } from "@/lib/catalogProductSelect";
 
-const CATEGORIES = [
-  "All",
-  "Fashion",
-  "Crafts",
-  "Electronics",
-  "Groceries",
-  "Beauty",
-  "Home",
-];
+const CATEGORY_LINKS = [
+  { href: "/products", label: "All" },
+  ...MARKETPLACE_CATEGORIES.map((c) => ({
+    href: `/products?category=${encodeURIComponent(c.slug)}`,
+    label: c.shopperShortLabel,
+  })),
+] as const;
 
 export default async function Home() {
   const supabase = createClient();
@@ -29,22 +27,7 @@ export default async function Home() {
 
   const { data: products, error: productsError } = await supabase
     .from("products")
-    .select(`
-      id,
-      title,
-      price_ugx,
-      is_on_sale,
-      sale_price_ugx,
-      use_size_specific_prices,
-      size_inventory,
-      size_prices,
-      images,
-      category,
-      stock,
-      vendor:profiles!vendor_id (
-        business_name
-      )
-    `)
+    .select(CATALOG_PRODUCT_SELECT)
     .is("deleted_at", null)
     .order("created_at", { ascending: false })
     .limit(20);
@@ -97,7 +80,7 @@ export default async function Home() {
 
       {/* Discovery cards */}
       <section
-        className={`grid grid-cols-2 gap-3 px-4 anim-slide-in-bottom anim-delay-150 ${user ? "pt-3" : "pt-5"}`}
+        className={`grid grid-cols-1 gap-3 px-4 anim-slide-in-bottom anim-delay-150 sm:grid-cols-2 ${user ? "pt-3" : "pt-5"}`}
       >
         <Link
           href="/products"
@@ -110,8 +93,8 @@ export default async function Home() {
             <ArrowUpRight className="h-4 w-4" strokeWidth={2} />
           </span>
         </Link>
-        <button
-          type="button"
+        <Link
+          href="/products/trending"
           className="relative flex min-h-[120px] flex-col justify-between overflow-hidden rounded-4xl bg-white p-4 text-left shadow-card transition hover:shadow-card-hover active:scale-[0.98]"
         >
           <p className="max-w-[85%] text-sm font-semibold leading-snug text-gray-900">
@@ -120,21 +103,21 @@ export default async function Home() {
           <span className="ml-auto flex h-9 w-9 items-center justify-center rounded-full bg-kuva-surface text-gray-900">
             <ArrowUpRight className="h-4 w-4" strokeWidth={2} />
           </span>
-        </button>
+        </Link>
       </section>
 
       {/* Categories */}
       <section className="px-4 pt-6 anim-slide-in-bottom anim-delay-300">
         <h3 className="mb-3 text-sm font-semibold text-gray-900">Categories</h3>
-        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-          {CATEGORIES.map((cat) => (
-            <button
-              key={cat}
-              type="button"
-              className="whitespace-nowrap rounded-full bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-card transition hover:bg-kuva-lavender/50 active:scale-95"
+        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide sm:flex-wrap sm:overflow-visible">
+          {CATEGORY_LINKS.map(({ href, label }) => (
+            <Link
+              key={href}
+              href={href}
+              className="inline-flex min-h-[44px] shrink-0 items-center justify-center whitespace-nowrap rounded-full bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-card transition hover:bg-kuva-lavender/50 active:scale-95"
             >
-              {cat}
-            </button>
+              {label}
+            </Link>
           ))}
         </div>
       </section>
@@ -161,15 +144,8 @@ export default async function Home() {
         )}
 
         {!productsError && safeProducts.length === 0 && (
-          <div className="anim-slide-in-bottom anim-delay-150 rounded-5xl border border-dashed border-kuva-line bg-white px-6 py-12 text-center shadow-card">
-            <Store
-              className="mx-auto mb-3 h-12 w-12 text-gray-300"
-              strokeWidth={1.25}
-            />
-            <p className="font-medium text-gray-600">No products yet</p>
-            <p className="mt-1 text-sm text-gray-400">
-              Be the first to list something on KUVA.
-            </p>
+          <div className="anim-slide-in-bottom anim-delay-150">
+            <CatalogEmptyState />
           </div>
         )}
 

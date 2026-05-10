@@ -3,46 +3,49 @@ import { ArrowLeft, ChevronRight } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { ProductCard } from "@/components/ProductCard";
 import { CatalogEmptyState } from "@/components/CatalogEmptyState";
-import {
-  getCategoryLabel,
-  isKnownCategorySlug,
-} from "@/lib/marketplaceCategories";
 import { CATALOG_PRODUCT_SELECT } from "@/lib/catalogProductSelect";
 
-function categoryFromSearchParams(searchParams: {
-  category?: string | string[];
-}): string | undefined {
-  const sp = searchParams?.category;
-  if (Array.isArray(sp)) return sp[0];
-  return sp;
-}
+type TrendingRow = {
+  product_id: string;
+  units_sold: number;
+  checkout_count: number;
+};
 
-export default async function ProductsPage({
-  searchParams,
-}: {
-  searchParams: { category?: string | string[] };
-}) {
+export default async function TrendingProductsPage() {
   const supabase = createClient();
-  const raw = categoryFromSearchParams(searchParams);
-  /** Unknown slug → browse all (ignore invalid filter). */
-  const categorySlug =
-    raw && isKnownCategorySlug(raw) ? raw : undefined;
 
-  let query = supabase
-    .from("products")
-    .select(CATALOG_PRODUCT_SELECT)
-    .is("deleted_at", null)
-    .order("created_at", { ascending: false });
+  const { data: trendingRows, error: rpcError } = await supabase.rpc(
+    "get_trending_product_ids",
+    { p_days: 7, p_limit: 48 }
+  );
 
-  if (categorySlug) {
-    query = query.eq("category", categorySlug);
+  const rows = (trendingRows ?? []) as TrendingRow[];
+  const ids = rows.map((r) => r.product_id).filter(Boolean);
+
+  let orderedProducts: any[] = [];
+  let productsFetchFailed = false;
+
+  if (ids.length > 0) {
+    const { data: fetched, error: fetchError } = await supabase
+      .from("products")
+      .select(CATALOG_PRODUCT_SELECT)
+      .in("id", ids)
+      .is("deleted_at", null);
+
+    if (fetchError) {
+      productsFetchFailed = true;
+    } else if (fetched?.length) {
+      const orderIndex = new Map(ids.map((id, i) => [id, i]));
+      orderedProducts = [...fetched].sort(
+        (a, b) =>
+          (orderIndex.get(a.id) ?? 9999) - (orderIndex.get(b.id) ?? 9999)
+      );
+    }
   }
 
-  const { data: products, error } = await query;
-
-  const list = products ?? [];
-  const categoryTitle =
-    categorySlug != null ? getCategoryLabel(categorySlug) : null;
+  const showRpcError =
+    rpcError && ids.length === 0 && orderedProducts.length === 0;
+  const showProductsFetchError = productsFetchFailed && ids.length > 0;
 
   return (
     <main className="min-h-screen px-4 pb-28 pt-4">
@@ -56,44 +59,46 @@ export default async function ProductsPage({
             <ArrowLeft className="h-5 w-5" strokeWidth={2} />
           </Link>
           <div className="flex min-w-0 flex-1 flex-col items-center text-center">
-            <h1 className="text-lg font-semibold text-gray-900">Discover</h1>
-            {categoryTitle ? (
-              <p className="truncate text-xs text-gray-500">{categoryTitle}</p>
-            ) : null}
+            <h1 className="text-lg font-semibold text-gray-900">
+              Top selling picks
+            </h1>
+            <p className="text-xs text-gray-500">
+              Based on paid checkouts in the last 7 days
+            </p>
           </div>
           <span className="min-w-[44px]" aria-hidden />
         </div>
       </header>
 
-      {error && (
+      {(showRpcError || showProductsFetchError) && (
         <div className="anim-slide-in-bottom mt-4 rounded-3xl border border-kuva-accent/30 bg-white px-4 py-3 text-sm text-kuva-accent">
-          Could not load products right now. Please refresh.
+          Could not load trending products right now. Please refresh.
         </div>
       )}
 
-      {!error && list.length === 0 && (
+      {!showRpcError &&
+        !showProductsFetchError &&
+        orderedProducts.length === 0 && (
         <div className="mt-6">
           <CatalogEmptyState
             title="No products yet"
-            description={
-              categorySlug
-                ? "Nothing listed in this category yet."
-                : "Be the first to list something on KUVA."
-            }
+            description="No trending products in the last 7 days."
           />
           <Link
-            href="/"
+            href="/products"
             className="anim-slide-in-bottom anim-delay-200 mx-auto mt-6 flex max-w-xs items-center justify-center gap-0.5 text-sm font-medium text-gray-600 transition hover:text-gray-900"
           >
-            Back to home
+            Browse all products
             <ChevronRight className="h-4 w-4" strokeWidth={2} />
           </Link>
         </div>
       )}
 
-      {!error && list.length > 0 && (
+      {!showRpcError &&
+        !showProductsFetchError &&
+        orderedProducts.length > 0 && (
         <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-3">
-          {list.map((product, i) => (
+          {orderedProducts.map((product, i) => (
             <div
               key={product.id}
               className="anim-slide-in-bottom"
