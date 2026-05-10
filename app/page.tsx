@@ -80,7 +80,7 @@ export default async function Home() {
 
       {/* Discovery cards */}
       <section
-        className={`grid grid-cols-1 gap-3 px-4 anim-slide-in-bottom anim-delay-150 sm:grid-cols-2 ${user ? "pt-3" : "pt-5"}`}
+        className={`grid grid-cols-2 gap-3 px-4 anim-slide-in-bottom anim-delay-150 ${user ? "pt-3" : "pt-5"}`}
       >
         <Link
           href="/products"

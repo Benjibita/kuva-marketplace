@@ -15,6 +15,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { PREDEFINED_SIZES } from "@/utils/productSizes";
 import { MARKETPLACE_CATEGORIES } from "@/lib/marketplaceCategories";
+import { ensureProfileRowExists } from "@/lib/ensureProfile";
 
 const VENDOR_CATEGORY_OPTIONS = MARKETPLACE_CATEGORIES.map((c) => ({
   value: c.slug,
@@ -107,6 +108,20 @@ export default function VendorUpload() {
 
       if (userError || !user) {
         throw new Error("You must be logged in to add a product.");
+      }
+
+      if (user.user_metadata?.role !== "vendor") {
+        throw new Error("Only vendor accounts can list products.");
+      }
+
+      const { error: profileEnsureError } = await ensureProfileRowExists(
+        supabase,
+        user
+      );
+      if (profileEnsureError) {
+        throw new Error(
+          `Your seller profile is missing. Please log out and log in again, then retry. (${profileEnsureError.message})`
+        );
       }
 
       const basePrice = parseFloat(price);

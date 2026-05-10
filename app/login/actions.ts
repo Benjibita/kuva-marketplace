@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
+import { ensureProfileRowExists } from '@/lib/ensureProfile'
 
 const UGANDA_PHONE_HELPER_TEXT = 'Use a valid Uganda number: 07XXXXXXXX, 2567XXXXXXXX, or +2567XXXXXXXX.'
 
@@ -92,6 +93,16 @@ export async function login(formData: FormData) {
     return redirectWithMessage('/login', getLoginErrorMessage(error.message, error.status))
   }
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (user) {
+    const { error: profileEnsureError } = await ensureProfileRowExists(supabase, user)
+    if (profileEnsureError) {
+      console.error('[login] ensureProfileRowExists:', profileEnsureError)
+    }
+  }
+
   revalidatePath('/', 'layout')
   redirect('/')
 }
@@ -142,14 +153,24 @@ export async function signup(formData: FormData) {
     return redirectWithMessage('/signup', getSignupErrorMessage(error.message, error.status))
   }
 
-  // Insert the profile row so vendor_id FK on products is satisfied
+  // Insert the profile row so vendor_id FK on products is satisfied (requires profiles INSERT RLS policy).
   if (signUpData.user) {
-    await supabase.from('profiles').upsert({
-      id: signUpData.user.id,
-      role: role as 'vendor' | 'buyer',
-      business_name: businessName || null,
-      phone_number: normalizedPhoneNumber,
-    })
+    const { error: profileError } = await supabase.from('profiles').upsert(
+      {
+        id: signUpData.user.id,
+        role: role as 'vendor' | 'buyer',
+        business_name: businessName || null,
+        phone_number: normalizedPhoneNumber,
+      },
+      { onConflict: 'id' }
+    )
+    if (profileError) {
+      console.error('[signup] profile upsert:', profileError)
+      return redirectWithMessage(
+        '/signup',
+        'Account was created but your profile could not be saved. Please log in — we will retry automatically — or contact support.'
+      )
+    }
   }
 
   revalidatePath('/', 'layout')
