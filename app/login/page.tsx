@@ -1,16 +1,21 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { login } from './actions'
-import { ArrowLeft, Eye, EyeOff } from 'lucide-react'
+import { ArrowLeft, Eye, EyeOff, Loader2 } from 'lucide-react'
 
 export default function LoginPage({
   searchParams,
 }: {
-  searchParams: { message: string }
+  searchParams: { message?: string }
 }) {
   const [showPassword, setShowPassword] = useState(false)
+  const [submitPending, setSubmitPending] = useState(false)
+
+  useEffect(() => {
+    setSubmitPending(false)
+  }, [searchParams?.message])
 
   return (
     <div className="flex-1 flex flex-col w-full px-8 sm:max-w-md justify-center gap-2 min-h-screen mx-auto">
@@ -22,7 +27,10 @@ export default function LoginPage({
         Back
       </Link>
 
-      <form className="flex flex-1 w-full flex-col justify-center gap-2 text-foreground">
+      <form
+        className="flex flex-1 w-full flex-col justify-center gap-2 text-foreground"
+        onSubmit={() => setSubmitPending(true)}
+      >
         <div className="mb-6 flex flex-col items-center gap-2 text-center anim-slide-in-bottom anim-delay-100">
           <h1 className="text-3xl font-bold text-primary">Welcome to KUVA</h1>
           <p className="text-gray-500 text-sm">Sign in to your KUVA account</p>
@@ -57,10 +65,20 @@ export default function LoginPage({
         </div>
         
         <button
+          type="submit"
           formAction={login}
-          className="anim-slide-in-bottom anim-delay-400 mb-4 rounded-xl bg-primary px-4 py-3 font-semibold text-white shadow-sm transition hover:bg-primary/90 active:scale-[0.98]"
+          disabled={submitPending}
+          aria-busy={submitPending}
+          className="anim-slide-in-bottom anim-delay-400 mb-4 flex min-h-[48px] items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 font-semibold text-white shadow-sm transition hover:bg-primary/90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70"
         >
-          Sign In
+          {submitPending ? (
+            <>
+              <Loader2 className="h-5 w-5 shrink-0 animate-spin" aria-hidden />
+              <span>Signing in…</span>
+            </>
+          ) : (
+            'Sign In'
+          )}
         </button>
 
         {searchParams?.message && (
