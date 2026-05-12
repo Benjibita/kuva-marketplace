@@ -2,8 +2,42 @@ import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Plus, Package, Edit3, ClipboardList, ChevronRight } from 'lucide-react'
+import { Plus, Package, Edit3, ClipboardList, ChevronRight, TrendingUp, AlertTriangle } from 'lucide-react'
 import { SoftDeleteProductButton } from '@/components/SoftDeleteProductButton'
+
+type OrderItemWithOrder = {
+  id: string
+  quantity: number
+  price_per_unit: number
+  sale_price_per_unit: number | null
+  orders: { status: string } | { status: string }[] | null
+}
+
+function orderStatusFromLine(line: OrderItemWithOrder): string | null {
+  const o = line.orders
+  if (!o) return null
+  if (Array.isArray(o)) return o[0]?.status ?? null
+  return o.status
+}
+
+function totalUnitsFromSizeInventory(inv: unknown): number {
+  if (!inv || typeof inv !== 'object') return 0
+  return Object.values(inv as Record<string, unknown>).reduce<number>(
+    (sum, v) => sum + Math.max(0, Number(v) || 0),
+    0
+  )
+}
+
+function isLowStockProduct(p: {
+  stock: number
+  use_size_variants?: boolean | null
+  size_inventory?: Record<string, number> | null
+}): boolean {
+  if (p.use_size_variants && p.size_inventory) {
+    return totalUnitsFromSizeInventory(p.size_inventory) <= 5
+  }
+  return p.stock <= 5
+}
 
 export default async function VendorDashboard({
   searchParams,
@@ -23,6 +57,37 @@ export default async function VendorDashboard({
     .eq('vendor_id', user.id)
     .is('deleted_at', null)
     .order('created_at', { ascending: false })
+
+  const { data: salesLinesRaw } = await supabase
+    .from('order_items')
+    .select(
+      `
+      id,
+      quantity,
+      price_per_unit,
+      sale_price_per_unit,
+      orders ( status )
+    `
+    )
+    .eq('vendor_id', user.id)
+
+  const salesLines = (salesLinesRaw ?? []) as unknown as OrderItemWithOrder[]
+  const counted = salesLines.filter((row) => {
+    const st = orderStatusFromLine(row)
+    return st === 'paid' || st === 'delivered'
+  })
+
+  const salesCount = counted.length
+  const revenueUgx = counted.reduce((acc, row) => {
+    const unit =
+      row.sale_price_per_unit != null
+        ? Number(row.sale_price_per_unit)
+        : Number(row.price_per_unit)
+    return acc + unit * row.quantity
+  }, 0)
+
+  const lowStockProducts =
+    (products ?? []).filter((p) => isLowStockProduct(p as any)).slice(0, 6) ?? []
 
   const { count: unreadOrderCount } = await supabase
     .from('vendor_notifications')
@@ -62,6 +127,46 @@ export default async function VendorDashboard({
             Edit Profile
           </Link>
         </div>
+
+        <div className="grid grid-cols-2 gap-3 anim-slide-in-bottom anim-delay-125">
+          <div className="rounded-2xl border border-gray-100 bg-white/85 p-4 shadow-sm backdrop-blur-sm">
+            <p className="text-xs font-medium uppercase text-gray-500">Sales (lines)</p>
+            <p className="mt-1 text-2xl font-bold text-gray-900">{salesCount}</p>
+            <p className="mt-1 text-[11px] text-gray-400">Paid or delivered orders</p>
+          </div>
+          <div className="rounded-2xl border border-gray-100 bg-white/85 p-4 shadow-sm backdrop-blur-sm">
+            <p className="flex items-center gap-1 text-xs font-medium uppercase text-gray-500">
+              <TrendingUp className="h-3.5 w-3.5" strokeWidth={2} />
+              Revenue
+            </p>
+            <p className="mt-1 text-xl font-bold tabular-nums text-gray-900">
+              UGX {Math.round(revenueUgx).toLocaleString()}
+            </p>
+            <p className="mt-1 text-[11px] text-gray-400">From your lines only</p>
+          </div>
+        </div>
+
+        {lowStockProducts.length > 0 && (
+          <div className="rounded-2xl border border-amber-200 bg-amber-50/90 px-4 py-3 text-sm anim-slide-in-bottom anim-delay-135">
+            <p className="flex items-center gap-2 font-semibold text-amber-900">
+              <AlertTriangle className="h-4 w-4 shrink-0" strokeWidth={2} />
+              Low stock (≤5 units)
+            </p>
+            <ul className="mt-2 space-y-1 text-amber-950/90">
+              {lowStockProducts.map((p) => (
+                <li key={p.id} className="flex items-center justify-between gap-2">
+                  <span className="truncate font-medium">{p.title}</span>
+                  <Link
+                    href={`/vendor/edit-product/${p.id}`}
+                    className="shrink-0 text-xs font-semibold underline"
+                  >
+                    Edit
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         <Link
           href="/vendor/orders"

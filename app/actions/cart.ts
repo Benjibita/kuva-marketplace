@@ -2,6 +2,10 @@
 
 import { createClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
+import {
+  messageFromSupabaseError,
+  USER_AUTH_REQUIRED,
+} from '@/lib/userFacingErrors';
 
 export async function addToCart(productId: string, quantity: number, selectedSize?: string | null) {
   const supabase = await createClient();
@@ -11,7 +15,7 @@ export async function addToCart(productId: string, quantity: number, selectedSiz
   } = await supabase.auth.getUser();
 
   if (authError || !user) {
-    throw new Error('Unauthorized');
+    throw new Error(USER_AUTH_REQUIRED);
   }
 
   // Check if product exists and is not soft deleted
@@ -22,8 +26,13 @@ export async function addToCart(productId: string, quantity: number, selectedSiz
     .is('deleted_at', null)
     .single();
 
-  if (productError || !product) {
-    throw new Error('Product not found');
+  if (productError) {
+    throw new Error(
+      messageFromSupabaseError(productError, 'This product is unavailable.')
+    );
+  }
+  if (!product) {
+    throw new Error('This product is unavailable.');
   }
 
   const normalizedSize = selectedSize || null;
@@ -63,7 +72,9 @@ export async function addToCart(productId: string, quantity: number, selectedSiz
       .eq('id', existingItem.id);
 
     if (updateError) {
-      throw new Error('Failed to update cart');
+      throw new Error(
+        messageFromSupabaseError(updateError, 'Could not update your cart.')
+      );
     }
   } else {
     // Insert new cart item
@@ -75,7 +86,9 @@ export async function addToCart(productId: string, quantity: number, selectedSiz
     });
 
     if (insertError) {
-      throw new Error('Failed to add item to cart');
+      throw new Error(
+        messageFromSupabaseError(insertError, 'Could not add this item to your cart.')
+      );
     }
   }
 
@@ -91,7 +104,7 @@ export async function removeFromCart(cartItemId: string) {
   } = await supabase.auth.getUser();
 
   if (authError || !user) {
-    throw new Error('Unauthorized');
+    throw new Error(USER_AUTH_REQUIRED);
   }
 
   // Verify item belongs to user
@@ -109,7 +122,9 @@ export async function removeFromCart(cartItemId: string) {
   const { error: deleteError } = await supabase.from('cart_items').delete().eq('id', cartItemId);
 
   if (deleteError) {
-    throw new Error('Failed to remove item from cart');
+    throw new Error(
+      messageFromSupabaseError(deleteError, 'Could not remove that item from your cart.')
+    );
   }
 
   revalidatePath('/cart');
@@ -124,7 +139,7 @@ export async function updateCartItemQuantity(cartItemId: string, quantity: numbe
   } = await supabase.auth.getUser();
 
   if (authError || !user) {
-    throw new Error('Unauthorized');
+    throw new Error(USER_AUTH_REQUIRED);
   }
 
   if (quantity <= 0) {
@@ -154,7 +169,9 @@ export async function updateCartItemQuantity(cartItemId: string, quantity: numbe
     .eq('id', cartItemId);
 
   if (updateError) {
-    throw new Error('Failed to update quantity');
+    throw new Error(
+      messageFromSupabaseError(updateError, 'Could not update that quantity.')
+    );
   }
 
   revalidatePath('/cart');
@@ -169,7 +186,7 @@ export async function getCartItems() {
   } = await supabase.auth.getUser();
 
   if (authError || !user) {
-    throw new Error('Unauthorized');
+    throw new Error(USER_AUTH_REQUIRED);
   }
 
   const { data: cartItems, error } = await supabase
@@ -200,7 +217,9 @@ export async function getCartItems() {
     .order('added_at', { ascending: false });
 
   if (error) {
-    throw new Error('Failed to fetch cart items');
+    throw new Error(
+      messageFromSupabaseError(error, 'Could not load your cart. Please refresh.')
+    );
   }
 
   return cartItems;
@@ -214,7 +233,7 @@ export async function clearCart() {
   } = await supabase.auth.getUser();
 
   if (authError || !user) {
-    throw new Error('Unauthorized');
+    throw new Error(USER_AUTH_REQUIRED);
   }
 
   const { error: deleteError } = await supabase
@@ -223,7 +242,9 @@ export async function clearCart() {
     .eq('user_id', user.id);
 
   if (deleteError) {
-    throw new Error('Failed to clear cart');
+    throw new Error(
+      messageFromSupabaseError(deleteError, 'Could not clear your cart.')
+    );
   }
 
   revalidatePath('/cart');

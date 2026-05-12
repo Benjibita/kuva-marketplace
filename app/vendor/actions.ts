@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
+import { messageFromSupabaseError } from "@/lib/userFacingErrors";
 
 const DASHBOARD = "/vendor/dashboard";
 
@@ -46,7 +47,9 @@ export async function softDeleteProduct(formData: FormData) {
   if (fetchError) {
     console.error("[softDeleteProduct] fetch", fetchError);
     redirect(
-      `${DASHBOARD}?error=${encodeURIComponent("Could not load product")}`,
+      `${DASHBOARD}?error=${encodeURIComponent(
+        messageFromSupabaseError(fetchError, "Could not load that product.")
+      )}`,
     );
   }
 
@@ -78,7 +81,9 @@ export async function softDeleteProduct(formData: FormData) {
   if (updateError) {
     console.error("[softDeleteProduct] update", updateError);
     redirect(
-      `${DASHBOARD}?error=${encodeURIComponent("Could not remove product")}`,
+      `${DASHBOARD}?error=${encodeURIComponent(
+        messageFromSupabaseError(updateError, "Could not remove that product.")
+      )}`,
     );
   }
 

@@ -7,6 +7,7 @@ import {
   customerStatusDisplay,
   vendorStatusToCustomer,
 } from '@/utils/orderStatus'
+import { CancelOrderButton } from '@/components/CancelOrderButton'
 
 type OrderItemRow = {
   id: string
@@ -80,6 +81,11 @@ export default async function OrderDetailPage({
 
   const items = (order.order_items ?? []) as unknown as OrderItemRow[]
 
+  const canCancel =
+    order.status === 'paid' &&
+    items.length > 0 &&
+    items.every((i) => (i.vendor_status ?? 'received') === 'received')
+
   if (items.some((i) => i.buyer_status_seen === false)) {
     void supabase.rpc('mark_order_items_seen', { p_order_id: order.id })
   }
@@ -109,6 +115,8 @@ export default async function OrderDetailPage({
           <p className="font-mono text-sm text-gray-900">{order.id}</p>
           <p className="mt-3 text-xs font-medium uppercase text-gray-500">Placed</p>
           <p className="text-sm text-gray-800">{created}</p>
+          <p className="mt-3 text-xs font-medium uppercase text-gray-500">Status</p>
+          <p className="text-sm font-semibold capitalize text-gray-900">{order.status}</p>
           <p className="mt-3 text-xs font-medium uppercase text-gray-500">Total</p>
           <p className="text-lg font-bold text-gray-900">
             UGX {Number(order.total_amount).toLocaleString()}
@@ -179,6 +187,8 @@ export default async function OrderDetailPage({
             })}
           </ul>
         </div>
+
+        {canCancel ? <CancelOrderButton orderId={order.id} /> : null}
       </div>
     </main>
   )

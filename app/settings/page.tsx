@@ -1,6 +1,6 @@
 import { createClient } from '@/utils/supabase/server'
-import { deleteAccount, logout } from '@/app/login/actions'
-import { LogOut, Package, Pencil, Trash2, User } from 'lucide-react'
+import { SettingsDeleteAccountForm, SettingsLogoutForm } from '@/components/SettingsAccountForms'
+import { Package, Pencil, User } from 'lucide-react'
 import Link from 'next/link'
 
 export default async function SettingsPage() {
@@ -118,15 +118,7 @@ export default async function SettingsPage() {
         </div>
 
         <div className="mb-6 rounded-2xl border border-gray-100 bg-white/85 backdrop-blur-sm p-6 shadow-sm anim-slide-in-bottom anim-delay-225">
-          <form action={logout}>
-            <button
-              type="submit"
-              className="flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white/90 backdrop-blur-sm py-3 px-4 text-sm font-semibold text-gray-800 transition hover:bg-white active:scale-[0.99]"
-            >
-              <LogOut className="h-5 w-5" strokeWidth={2} />
-              Log out
-            </button>
-          </form>
+          <SettingsLogoutForm />
         </div>
 
         <div className="bg-white/85 backdrop-blur-sm rounded-2xl p-6 shadow-sm border border-red-100 anim-slide-in-bottom anim-delay-300">
@@ -134,15 +126,7 @@ export default async function SettingsPage() {
           <p className="text-sm text-gray-500 mb-4">
             Once you delete your account, there is no going back. Please be certain.
           </p>
-          <form action={deleteAccount}>
-            <button 
-              type="submit" 
-              className="flex items-center justify-center w-full py-3 px-4 bg-red-50 text-red-600 font-semibold rounded-xl hover:bg-red-100 transition"
-            >
-              <Trash2 className="w-5 h-5 mr-2" />
-              Delete Account
-            </button>
-          </form>
+          <SettingsDeleteAccountForm />
         </div>
       </div>
     </main>

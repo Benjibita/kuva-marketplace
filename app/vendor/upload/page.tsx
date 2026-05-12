@@ -16,6 +16,7 @@ import { createClient } from "@/utils/supabase/client";
 import { PREDEFINED_SIZES } from "@/utils/productSizes";
 import { MARKETPLACE_CATEGORIES } from "@/lib/marketplaceCategories";
 import { ensureProfileRowExists } from "@/lib/ensureProfile";
+import { messageFromSupabaseError } from "@/lib/userFacingErrors";
 
 const VENDOR_CATEGORY_OPTIONS = MARKETPLACE_CATEGORIES.map((c) => ({
   value: c.slug,
@@ -185,7 +186,10 @@ export default function VendorUpload() {
 
         if (uploadError) {
           throw new Error(
-            `Failed to upload image "${img.file.name}": ${uploadError.message}`
+            messageFromSupabaseError(
+              uploadError,
+              `We could not upload "${img.file.name}". Try a smaller image or check your connection.`
+            )
           );
         }
 
@@ -217,7 +221,12 @@ export default function VendorUpload() {
       });
 
       if (insertError) {
-        throw new Error(`Could not save product: ${insertError.message}`);
+        throw new Error(
+          messageFromSupabaseError(
+            insertError,
+            "Could not save your listing. Please try again."
+          )
+        );
       }
 
       setIsSuccess(true);

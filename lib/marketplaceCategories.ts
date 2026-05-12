@@ -5,7 +5,6 @@ export const MARKETPLACE_CATEGORIES = [
   { slug: "crafts", label: "Crafts & art", shopperShortLabel: "Crafts" },
   { slug: "beauty", label: "Health & beauty", shopperShortLabel: "Beauty" },
   { slug: "electronics", label: "Electronics", shopperShortLabel: "Electronics" },
-  { slug: "groceries", label: "Groceries & food", shopperShortLabel: "Groceries" },
   { slug: "home", label: "Home & living", shopperShortLabel: "Home" },
 ] as const;
 

@@ -7,6 +7,13 @@ import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { SoftDeleteProductButton } from "@/components/SoftDeleteProductButton";
 import { PREDEFINED_SIZES } from "@/utils/productSizes";
+import { MARKETPLACE_CATEGORIES, isKnownCategorySlug } from "@/lib/marketplaceCategories";
+import { messageFromSupabaseError } from "@/lib/userFacingErrors";
+
+const VENDOR_CATEGORY_OPTIONS = MARKETPLACE_CATEGORIES.map((c) => ({
+  value: c.slug,
+  label: c.label,
+}));
 
 export default function EditProductPage() {
   const params = useParams();
@@ -28,6 +35,7 @@ export default function EditProductPage() {
   const [sizePrices, setSizePrices] = useState<Record<string, string>>({});
   const [isOnSale, setIsOnSale] = useState(false);
   const [salePrice, setSalePrice] = useState("");
+  const [category, setCategory] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -97,6 +105,8 @@ export default function EditProductPage() {
         setSalePrice(
           data.sale_price_ugx == null ? "" : data.sale_price_ugx.toString(),
         );
+        const cat = data.category as string | null;
+        setCategory(cat && isKnownCategorySlug(cat) ? cat : "");
       } catch (e) {
         console.error("[EditProduct] load unexpected", e);
         setNotFound(true);
@@ -180,6 +190,7 @@ export default function EditProductPage() {
           size_prices: useSizes && !useSamePriceForAllSizes ? parsedSizePrices : {},
           is_on_sale: isOnSale,
           sale_price_ugx: isOnSale ? parsedSalePrice : null,
+          category: category || null,
           updated_at: new Date().toISOString(),
         })
         .eq("id", id)
@@ -188,7 +199,12 @@ export default function EditProductPage() {
 
       if (updateError) {
         console.error("[EditProduct] update", updateError);
-        setError("Could not save changes. Please try again.");
+        setError(
+          messageFromSupabaseError(
+            updateError,
+            "Could not save changes. Please try again."
+          )
+        );
         return;
       }
 
@@ -318,6 +334,24 @@ export default function EditProductPage() {
                 className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
             </div>
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Category
+            </label>
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              className="w-full appearance-none rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 transition focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/40"
+            >
+              <option value="">Uncategorized</option>
+              {VENDOR_CATEGORY_OPTIONS.map((c) => (
+                <option key={c.value} value={c.value}>
+                  {c.label}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 space-y-3">

@@ -2,6 +2,10 @@
 
 import { createClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
+import {
+  messageFromSupabaseError,
+  USER_AUTH_REQUIRED,
+} from '@/lib/userFacingErrors';
 
 /** Cart payload from client; product snapshot may be stale — always revalidated server-side */
 interface CheckoutItem {
@@ -42,7 +46,7 @@ export async function checkout(items: CheckoutItem[], total: number) {
   } = await supabase.auth.getUser();
 
   if (authError || !user) {
-    throw new Error('Unauthorized');
+    throw new Error(USER_AUTH_REQUIRED);
   }
 
   if (!items.length) {
@@ -63,7 +67,18 @@ export async function checkout(items: CheckoutItem[], total: number) {
       .single();
 
     if (prodErr || !product) {
-      throw new Error(`Product not available: ${item.products?.title || item.product_id}`);
+      const label = item.products?.title || 'This item';
+      if (prodErr) {
+        throw new Error(
+          messageFromSupabaseError(
+            prodErr,
+            `${label} is no longer available. Remove it from your cart and try again.`
+          )
+        );
+      }
+      throw new Error(
+        `${label} is no longer available. Remove it from your cart and try again.`
+      );
     }
 
     const sizeInventory =
@@ -108,11 +123,16 @@ export async function checkout(items: CheckoutItem[], total: number) {
 
   if (orderError) {
     console.error('Order creation error details:', orderError);
-    throw new Error(`Failed to create order: ${orderError.message}`);
+    throw new Error(
+      messageFromSupabaseError(
+        orderError,
+        'We could not place your order. Please try again in a moment.'
+      )
+    );
   }
 
   if (!order) {
-    throw new Error('Failed to create order: No order returned');
+    throw new Error('We could not place your order. Please try again.');
   }
 
   for (const { item, product } of validated) {
@@ -128,7 +148,12 @@ export async function checkout(items: CheckoutItem[], total: number) {
 
     if (orderItemError) {
       console.error('Order item creation error details:', orderItemError);
-      throw new Error(`Failed to create order item: ${orderItemError.message}`);
+      throw new Error(
+        messageFromSupabaseError(
+          orderItemError,
+          'We could not complete your order. Please contact support if this persists.'
+        )
+      );
     }
 
     const nextStock = product.stock - item.quantity;
@@ -153,7 +178,12 @@ export async function checkout(items: CheckoutItem[], total: number) {
       .eq('id', product.id);
 
     if (updateError) {
-      throw new Error('Failed to update inventory');
+      throw new Error(
+        messageFromSupabaseError(
+          updateError,
+          'Order was recorded but inventory could not be updated. Please contact support.'
+        )
+      );
     }
   }
 

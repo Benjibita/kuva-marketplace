@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkout } from '@/app/actions/checkout';
+import { messageFromUnknownError } from '@/lib/userFacingErrors';
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,8 +25,10 @@ export async function POST(request: NextRequest) {
     console.error('Checkout error:', error);
     return NextResponse.json(
       {
-        error:
-          error instanceof Error ? error.message : 'Checkout failed',
+        error: messageFromUnknownError(
+          error,
+          'Checkout could not be completed. Please try again.'
+        ),
       },
       { status: 500 }
     );

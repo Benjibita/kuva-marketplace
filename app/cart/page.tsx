@@ -22,6 +22,7 @@ import {
   updateGuestCartItemQuantity,
 } from '@/utils/guestCart';
 import { PREDEFINED_SIZES } from '@/utils/productSizes';
+import { messageFromUnknownError } from '@/lib/userFacingErrors';
 
 interface CartProduct {
   id: string;
@@ -313,7 +314,10 @@ export default function CartPage() {
       setTimeout(() => router.push('/'), 2000);
     } catch (error) {
       addNotification(
-        error instanceof Error ? error.message : 'Checkout failed',
+        messageFromUnknownError(
+          error,
+          'Checkout could not be completed. Please try again.'
+        ),
         'error'
       );
     } finally {
@@ -549,7 +553,7 @@ export default function CartPage() {
               {checkingOut ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Processing...
+                  Processing…
                 </>
               ) : (
                 'Checkout'
