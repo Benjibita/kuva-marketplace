@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Flame, Share2, ShoppingCart, Loader2 } from "lucide-react";
+import { ArrowLeft, Flame, Share2, ShoppingCart, Loader2, Star } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { addToCart } from "@/app/actions/cart";
@@ -24,7 +24,14 @@ interface Product {
   size_prices?: Record<string, number>;
   images: string[];
   stock: number;
+  vendor_id: string;
 }
+
+type SellerTrust = {
+  label: string;
+  ratingCount: number;
+  publicAvg: number | null;
+};
 
 export default function ProductDetailPage({
   params,
@@ -33,6 +40,7 @@ export default function ProductDetailPage({
 }) {
   const [product, setProduct] = useState<Product | null>(null);
   const [quantity, setQuantity] = useState(1);
+  const [sellerTrust, setSellerTrust] = useState<SellerTrust | null>(null);
   const [loading, setLoading] = useState(true);
   const [addingToCart, setAddingToCart] = useState(false);
   const [cartCount, setCartCount] = useState(0);
@@ -45,7 +53,7 @@ export default function ProductDetailPage({
     async function fetchProduct() {
       const { data } = await supabase
         .from("products")
-        .select("id, title, description, price_ugx, is_on_sale, sale_price_ugx, use_size_variants, use_size_specific_prices, size_inventory, size_prices, images, stock")
+        .select("id, vendor_id, title, description, price_ugx, is_on_sale, sale_price_ugx, use_size_variants, use_size_specific_prices, size_inventory, size_prices, images, stock")
         .eq("id", params.id)
         .is("deleted_at", null)
         .maybeSingle();
@@ -56,6 +64,31 @@ export default function ProductDetailPage({
       }
 
       setProduct(data);
+      const vid = data.vendor_id;
+      if (vid) {
+        const [{ data: prof }, { data: sumRaw }] = await Promise.all([
+          supabase
+            .from("profiles")
+            .select("business_name, phone_number")
+            .eq("id", vid)
+            .maybeSingle(),
+          supabase.rpc("public_vendor_rating_summary", { p_vendor_id: vid }),
+        ]);
+        const sum = (
+          sumRaw as { rating_count: number; average_stars: number | null }[] | null
+        )?.[0];
+        const label =
+          prof?.business_name?.trim() ||
+          prof?.phone_number?.trim() ||
+          "Seller";
+        setSellerTrust({
+          label,
+          ratingCount: sum?.rating_count ?? 0,
+          publicAvg: sum?.average_stars ?? null,
+        });
+      } else {
+        setSellerTrust(null);
+      }
       if (data.use_size_variants) {
         const firstAvailable = PREDEFINED_SIZES.find(
           (size) => Number((data.size_inventory || {})[size] || 0) > 0
@@ -261,6 +294,35 @@ export default function ProductDetailPage({
             </button>
           </div>
         </div>
+
+        {sellerTrust ? (
+          <div className="mt-3 rounded-2xl border border-gray-100 bg-white/80 px-3 py-2.5 text-sm shadow-card">
+            <p className="text-gray-700">
+              Sold by{' '}
+              <span className="font-semibold text-gray-900">{sellerTrust.label}</span>
+            </p>
+            {sellerTrust.publicAvg != null ? (
+              <p className="mt-1 flex flex-wrap items-center gap-1.5 text-amber-800">
+                <Star
+                  className="h-4 w-4 shrink-0 fill-amber-400 text-amber-400"
+                  aria-hidden
+                />
+                <span className="font-semibold tabular-nums">
+                  {sellerTrust.publicAvg.toFixed(1)}
+                </span>
+                <span className="text-xs font-normal text-gray-500">
+                  ({sellerTrust.ratingCount} reviews)
+                </span>
+              </p>
+            ) : sellerTrust.ratingCount > 0 ? (
+              <p className="mt-1 text-xs text-gray-500">
+                Seller rating appears publicly after 10 reviews.
+              </p>
+            ) : (
+              <p className="mt-1 text-xs text-gray-500">No reviews yet.</p>
+            )}
+          </div>
+        ) : null}
 
         <p className="mt-2 text-xs text-gray-500">
           {product.stock <= 0

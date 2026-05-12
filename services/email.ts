@@ -170,3 +170,36 @@ function generateVendorEmailHTML(payload: EmailPayload): string {
     </html>
   `;
 }
+
+export type OrderDisputeEmailPayload = {
+  supportEmail: string | null;
+  orderId: string;
+  buyerId: string;
+  message: string;
+};
+
+/**
+ * Notify platform support that a buyer submitted an order dispute.
+ * Wire RESEND_API_KEY + SUPPORT_ADMIN_EMAIL when ready for production mail.
+ */
+export async function notifyOrderDisputeSubmitted(
+  payload: OrderDisputeEmailPayload
+) {
+  const to = payload.supportEmail?.trim();
+  if (!to) {
+    console.info(
+      "[order dispute] SUPPORT_ADMIN_EMAIL not set; skipping email.",
+      { orderId: payload.orderId, buyerId: payload.buyerId }
+    );
+    return { sent: false as const };
+  }
+
+  console.log(`[order dispute] email to ${to}`, {
+    orderId: payload.orderId,
+    buyerId: payload.buyerId,
+    preview: payload.message.slice(0, 200),
+  });
+
+  // TODO: Resend / SES — same pattern as sendVendorOrderEmail
+  return { sent: true as const, to };
+}

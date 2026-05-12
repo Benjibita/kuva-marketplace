@@ -5,12 +5,19 @@ import { createClient } from '@/utils/supabase/server'
 import { ArrowLeft, Package } from 'lucide-react'
 import {
   customerStatusDisplay,
+  isOrderFullyDelivered,
   vendorStatusToCustomer,
 } from '@/utils/orderStatus'
 import { CancelOrderButton } from '@/components/CancelOrderButton'
+import { OrderDisputeForm } from '@/components/OrderDisputeForm'
+import {
+  VendorOrderRatingForms,
+  type VendorRatingTarget,
+} from '@/components/VendorOrderRatingForms'
 
 type OrderItemRow = {
   id: string
+  vendor_id: string
   quantity: number
   vendor_status: string | null
   buyer_status_seen: boolean | null
@@ -31,6 +38,15 @@ function lineProduct(line: OrderItemRow): {
   if (!p) return null
   if (Array.isArray(p)) return p[0] ?? null
   return p
+}
+
+function contactLabel(
+  id: string,
+  profile?: { phone_number: string | null; business_name: string | null } | null
+) {
+  if (profile?.business_name) return profile.business_name
+  if (profile?.phone_number) return profile.phone_number
+  return `Seller (${id.slice(0, 8)}…)`
 }
 
 export default async function OrderDetailPage({
@@ -58,6 +74,7 @@ export default async function OrderDetailPage({
       buyer_id,
       order_items (
         id,
+        vendor_id,
         quantity,
         vendor_status,
         buyer_status_seen,
@@ -80,6 +97,60 @@ export default async function OrderDetailPage({
   }
 
   const items = (order.order_items ?? []) as unknown as OrderItemRow[]
+
+  const [{ data: dispute }, { data: ratingsRows }] = await Promise.all([
+    supabase
+      .from('order_disputes')
+      .select('message, created_at')
+      .eq('order_id', params.id)
+      .maybeSingle(),
+    supabase
+      .from('vendor_ratings')
+      .select('vendor_id, stars, comment')
+      .eq('order_id', params.id)
+      .eq('buyer_id', user.id),
+  ])
+
+  const ratingsByVendor = new Map(
+    (ratingsRows ?? []).map((r) => [
+      r.vendor_id,
+      { stars: r.stars, comment: r.comment },
+    ])
+  )
+
+  const vendorIds = Array.from(
+    new Set(items.map((i) => i.vendor_id).filter(Boolean))
+  )
+
+  let vendorProfileMap = new Map<
+    string,
+    { phone_number: string | null; business_name: string | null }
+  >()
+  if (vendorIds.length > 0) {
+    const { data: vprof } = await supabase
+      .from('profiles')
+      .select('id, phone_number, business_name')
+      .in('id', vendorIds)
+    vendorProfileMap = new Map(
+      (vprof ?? []).map((p) => [
+        p.id,
+        { phone_number: p.phone_number, business_name: p.business_name },
+      ])
+    )
+  }
+
+  const vendorsForRatings: VendorRatingTarget[] = vendorIds.map((vendorId) => ({
+    vendorId,
+    label: contactLabel(vendorId, vendorProfileMap.get(vendorId)),
+    existing: ratingsByVendor.get(vendorId) ?? null,
+  }))
+
+  const fullyDelivered = isOrderFullyDelivered(
+    items.map((i) => i.vendor_status)
+  )
+
+  const canOpenDisputeForm =
+    (order.status === 'paid' || order.status === 'delivered') && !dispute
 
   const canCancel =
     order.status === 'paid' &&
@@ -189,6 +260,19 @@ export default async function OrderDetailPage({
         </div>
 
         {canCancel ? <CancelOrderButton orderId={order.id} /> : null}
+
+        <OrderDisputeForm
+          orderId={order.id}
+          canSubmit={canOpenDisputeForm}
+          existing={dispute}
+        />
+
+        {fullyDelivered ? (
+          <VendorOrderRatingForms
+            orderId={order.id}
+            vendors={vendorsForRatings}
+          />
+        ) : null}
       </div>
     </main>
   )

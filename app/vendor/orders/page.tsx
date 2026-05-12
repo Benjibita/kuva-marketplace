@@ -106,6 +106,23 @@ export default async function VendorOrdersPage() {
     }
   })
 
+  const orderIdsForVendor = Array.from(new Set(orderLinesVm.map((l) => l.order_id)))
+  const disputesByOrderId: Record<string, { message: string; created_at: string }> =
+    {}
+  if (orderIdsForVendor.length > 0) {
+    const { data: disputeRows } = await supabase
+      .from('order_disputes')
+      .select('order_id, message, created_at')
+      .in('order_id', orderIdsForVendor)
+
+    for (const row of disputeRows ?? []) {
+      disputesByOrderId[row.order_id] = {
+        message: row.message,
+        created_at: row.created_at,
+      }
+    }
+  }
+
   return (
     <main className="min-h-screen bg-transparent pb-24">
       <header className="sticky top-0 z-40 flex items-center gap-3 border-b border-kuva-line/60 bg-white/40 px-3 py-3 backdrop-blur-md">
@@ -126,7 +143,10 @@ export default async function VendorOrdersPage() {
           <ClipboardList className="h-4 w-4 text-primary" />
           Active &amp; recent orders
         </h2>
-        <VendorOrdersSection lines={orderLinesVm} />
+        <VendorOrdersSection
+          lines={orderLinesVm}
+          disputesByOrderId={disputesByOrderId}
+        />
       </div>
     </main>
   )

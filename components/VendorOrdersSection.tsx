@@ -8,7 +8,7 @@ import {
   type VendorOrderStatus,
 } from '@/utils/orderStatus';
 import { updateVendorOrderItemStatus } from '@/app/actions/vendorOrders';
-import { ChevronDown, ShoppingBag } from 'lucide-react';
+import { AlertCircle, ChevronDown, ShoppingBag } from 'lucide-react';
 
 export type VendorOrderLineVM = {
   id: string;
@@ -30,8 +30,13 @@ const STATUS_OPTIONS: VendorOrderStatus[] = [
 
 export function VendorOrdersSection({
   lines,
+  disputesByOrderId = {},
 }: {
   lines: VendorOrderLineVM[];
+  disputesByOrderId?: Record<
+    string,
+    { message: string; created_at: string }
+  >;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -65,6 +70,7 @@ export function VendorOrdersSection({
       {orderIds.map((orderId) => {
         const group = byOrder[orderId];
         const created = group[0]?.order_created_at;
+        const dispute = disputesByOrderId[orderId];
         return (
           <div
             key={orderId}
@@ -88,6 +94,24 @@ export function VendorOrdersSection({
                   : ''}
               </p>
             </div>
+            {dispute ? (
+              <div className="border-b border-amber-200 bg-amber-50/95 px-4 py-3 text-sm text-amber-950">
+                <p className="flex items-center gap-2 font-semibold">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  Buyer dispute / help request
+                </p>
+                <p className="mt-1 text-xs text-amber-900/85">
+                  Submitted{' '}
+                  {new Date(dispute.created_at).toLocaleString(undefined, {
+                    dateStyle: 'medium',
+                    timeStyle: 'short',
+                  })}
+                </p>
+                <p className="mt-2 whitespace-pre-wrap rounded-xl bg-white/90 p-3 text-sm text-gray-900">
+                  {dispute.message}
+                </p>
+              </div>
+            ) : null}
             <ul className="divide-y divide-gray-100">
               {group.map((line) => (
                 <li

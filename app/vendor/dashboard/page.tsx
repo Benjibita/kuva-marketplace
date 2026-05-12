@@ -2,7 +2,7 @@ import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Plus, Package, Edit3, ClipboardList, ChevronRight, TrendingUp, AlertTriangle } from 'lucide-react'
+import { Plus, Package, Edit3, ClipboardList, ChevronRight, TrendingUp, AlertTriangle, Star } from 'lucide-react'
 import { SoftDeleteProductButton } from '@/components/SoftDeleteProductButton'
 
 type OrderItemWithOrder = {
@@ -95,6 +95,25 @@ export default async function VendorDashboard({
     .eq('vendor_id', user.id)
     .eq('status', 'unread')
 
+  const { data: ratingRows } = await supabase
+    .from('vendor_ratings')
+    .select('stars')
+    .eq('vendor_id', user.id)
+
+  const ratingCount = ratingRows?.length ?? 0
+  const privateRatingAvg =
+    ratingCount > 0
+      ? ratingRows!.reduce((a, r) => a + Number(r.stars), 0) / ratingCount
+      : null
+
+  const { data: pubSummaryRaw } = await supabase.rpc(
+    'public_vendor_rating_summary',
+    { p_vendor_id: user.id }
+  )
+  const pubSummary = (
+    pubSummaryRaw as { rating_count: number; average_stars: number | null }[] | null
+  )?.[0]
+
   const message =
     typeof searchParams.message === 'string' ? searchParams.message : undefined
   const error =
@@ -168,9 +187,43 @@ export default async function VendorDashboard({
           </div>
         )}
 
+        <div className="rounded-2xl border border-gray-100 bg-white/85 p-4 shadow-sm backdrop-blur-sm anim-slide-in-bottom anim-delay-150">
+          <p className="text-xs font-medium uppercase text-gray-500">Customer ratings</p>
+          {ratingCount === 0 ? (
+            <p className="mt-2 text-sm text-gray-600">You don&apos;t have any ratings yet.</p>
+          ) : (
+            <>
+              <p className="mt-2 flex items-center gap-2 text-2xl font-bold tabular-nums text-gray-900">
+                {privateRatingAvg!.toFixed(1)}
+                <Star className="h-6 w-6 fill-amber-400 text-amber-400" aria-hidden />
+              </p>
+              <p className="mt-1 text-xs text-gray-500">
+                {ratingCount} verified review{ratingCount === 1 ? '' : 's'} (visible to you and
+                support).
+              </p>
+              <p className="mt-2 text-xs leading-relaxed text-gray-600">
+                {pubSummary?.average_stars != null ? (
+                  <>
+                    Public average on listings:{' '}
+                    <span className="font-semibold text-gray-900">
+                      {pubSummary.average_stars.toFixed(1)} ★
+                    </span>{' '}
+                    ({pubSummary.rating_count} reviews).
+                  </>
+                ) : (
+                  <>
+                    Public average stays hidden until you reach 10 reviews ({ratingCount}
+                    /10). Early scores stay private to avoid noisy averages.
+                  </>
+                )}
+              </p>
+            </>
+          )}
+        </div>
+
         <Link
           href="/vendor/orders"
-          className="group flex items-center justify-between gap-3 rounded-2xl border border-gray-100 bg-white/85 px-5 py-4 shadow-sm backdrop-blur-sm transition hover:bg-white anim-slide-in-bottom anim-delay-150"
+          className="group flex items-center justify-between gap-3 rounded-2xl border border-gray-100 bg-white/85 px-5 py-4 shadow-sm backdrop-blur-sm transition hover:bg-white anim-slide-in-bottom anim-delay-200"
         >
           <span className="flex items-center gap-3">
             <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
